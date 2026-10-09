@@ -1,5 +1,8 @@
 
 VERSION=2.0.0
+# GitHub owner for `make release` (gothub -u). Built-in $(USER) is the login
+# name, so use a dedicated variable defaulting to upstream.
+GHUSER ?= eyedeekay
 
 all: gen
 	GOOS=windows go build -o i2pchromium.exe
@@ -10,10 +13,10 @@ gen:
 	go run -tags generate gen.go
 
 release:
-	gothub release -p -u eyedeekay -r "I2P-Configuration-for-Chromium" -t $(VERSION) -n "Launchers" -d "A self-configuring launcher for I2P Browsing with Chromium"; true
-	gothub upload -R -u eyedeekay -r "I2P-Configuration-for-Chromium" -t $(VERSION) -n "i2pchromium.exe" -f "i2pchromium.exe"
-	gothub upload -R -u eyedeekay -r "I2P-Configuration-for-Chromium" -t $(VERSION) -n "i2pchromium-darwin" -f "i2pchromium-darwin"
-	gothub upload -R -u eyedeekay -r "I2P-Configuration-for-Chromium" -t $(VERSION) -n "i2pchromium" -f "i2pchromium"
+	gothub release -p -u $(GHUSER) -r "I2P-Configuration-for-Chromium" -t $(VERSION) -n "Launchers" -d "A self-configuring launcher for I2P Browsing with Chromium"; true
+	gothub upload -R -u $(GHUSER) -r "I2P-Configuration-for-Chromium" -t $(VERSION) -n "i2pchromium.exe" -f "i2pchromium.exe"
+	gothub upload -R -u $(GHUSER) -r "I2P-Configuration-for-Chromium" -t $(VERSION) -n "i2pchromium-darwin" -f "i2pchromium-darwin"
+	gothub upload -R -u $(GHUSER) -r "I2P-Configuration-for-Chromium" -t $(VERSION) -n "i2pchromium" -f "i2pchromium"
 
 zip:
 	cd i2pchrome.js && make zip

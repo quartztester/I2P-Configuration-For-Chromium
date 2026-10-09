@@ -233,8 +233,8 @@ Known limitations (inherent to the approach, read before relying on it):
  * The bundled `index.html`/`home.html` contain links to GitHub; they are
    user-clicked, never auto-fetched.
 
-Audit TODO (upstream decisions needed): the committed `1.26.tar.gz` and
-`i2psetproxy.js@eyedeekay.github.io.xpi` are Firefox-side reference
-artifacts, not load order dependencies; the `--disable-32-apis` flag in
-`main.go` is a long-standing typo for `--disable-3d-apis` (duplicate,
-harmless).
+Audit notes (fixed in this branch): the `1.26.tar.gz` and
+`i2psetproxy.js@eyedeekay.github.io.xpi` Firefox-side reference artifacts
+were removed (nothing read them, and the .xpi was embedded into every
+launcher binary); `main.go` previously passed a `--disable-32-apis` typo
+flag (harmless duplicate of `--disable-3d-apis`) — also removed.
