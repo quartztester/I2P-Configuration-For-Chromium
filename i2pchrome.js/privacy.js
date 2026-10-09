@@ -3,51 +3,65 @@ var titlepref = chrome.i18n.getMessage("titlePreface");
 /* This disables protected content, which is a form of digital restrictions
    management dependent on identifying information */
 function disableDigitalRestrictionsManagement(platformInfo) {
-  if (platformInfo.PlatformOs == "android") {
-    chrome.privacy.websites.protectedContentEnabled.set({ value: false });
-  } else if (platformInfo.PlatformOs == "windows") {
-    chrome.privacy.websites.protectedContentEnabled.set({ value: false });
+  try {
+    if (platformInfo.os == "android" || platformInfo.os == "windows") {
+      chrome.privacy.websites.protectedContentEnabled.set({ value: false });
+    }
+  } catch (e) {
+    console.log("protectedContentEnabled unavailable:", e);
   }
 }
 
 function getBrowser() {
-  if (typeof chrome !== "undefined") {
-    if (typeof browser !== "undefined") {
-      return "Firefox";
-    } else {
-      return "Chrome";
-    }
-  } else {
-    return "Chrome";
-  } /* else {
-    return "Edge";
-  }*/
+  // Chrome 148+ also defines browser.*, so detect Firefox by an API only it
+  // provides instead of by the namespace's existence.
+  if (
+    typeof browser !== "undefined" &&
+    browser.runtime &&
+    typeof browser.runtime.getBrowserInfo === "function"
+  ) {
+    return "Firefox";
+  }
+  return "Chrome";
 }
 
 function setAllPrivacy() {
-  chrome.privacy.network.networkPredictionEnabled.set({ value: false });
+  try {
+    chrome.privacy.network.networkPredictionEnabled.set({ value: false });
+  } catch (e) {
+    console.log("networkPredictionEnabled unavailable:", e);
+  }
   if (getBrowser() == "Chrome") {
-    chrome.privacy.services.alternateErrorPagesEnabled.set({ value: false });
-    chrome.privacy.services.autofillEnabled.set({ value: false });
-    chrome.privacy.services.passwordSavingEnabled.set({ value: false });
-    chrome.privacy.services.safeBrowsingEnabled.set({ value: false });
-    chrome.privacy.services.safeBrowsingExtendedReportingEnabled.set({
-      value: false,
-    });
-    chrome.privacy.services.searchSuggestEnabled.set({ value: false });
-    chrome.privacy.services.spellingServiceEnabled.set({ value: false });
-    chrome.privacy.services.translationServiceEnabled.set({ value: false });
-    chrome.privacy.websites.thirdPartyCookiesAllowed.set({ value: false });
-    chrome.privacy.websites.doNotTrackEnabled.set({ value: true });
-    chrome.privacy.websites.hyperlinkAuditingEnabled.set({ value: false });
-    chrome.privacy.websites.referrersEnabled.set({ value: false });
-    //chrome.privacy.services.hotwordSearchEnabled.set({ value: false });
+    try {
+      chrome.privacy.services.alternateErrorPagesEnabled.set({ value: false });
+      chrome.privacy.services.autofillEnabled.set({ value: false });
+      chrome.privacy.services.passwordSavingEnabled.set({ value: false });
+      chrome.privacy.services.searchSuggestEnabled.set({ value: false });
+      chrome.privacy.services.spellingServiceEnabled.set({ value: false });
+      chrome.privacy.services.translationServiceEnabled.set({ value: false });
+      chrome.privacy.websites.thirdPartyCookiesAllowed.set({ value: false });
+      chrome.privacy.websites.hyperlinkAuditingEnabled.set({ value: false });
+      chrome.privacy.websites.referrersEnabled.set({ value: false });
+    } catch (e) {
+      console.log("Some Chrome privacy controls are unavailable:", e);
+    }
+    // SafeBrowsing is intentionally NOT disabled: enterprise/cloud-managed
+    // Chrome rejects privacy.services.safeBrowsingEnabled writes and the
+    // extension should degrade gracefully rather than throw on those builds.
+    // doNotTrack was removed from Chrome; only attempt it if present.
+    if (chrome.privacy.websites.doNotTrackEnabled) {
+      try {
+        chrome.privacy.websites.doNotTrackEnabled.set({ value: true });
+      } catch (e) {
+        console.log("doNotTrackEnabled is gone from this browser:", e);
+      }
+    }
   } else {
     browser.privacy.websites.hyperlinkAuditingEnabled.set({ value: false });
     browser.privacy.websites.firstPartyIsolate.set({ value: true });
     browser.privacy.websites.resistFingerprinting.set({ value: true });
     //    browser.privacy.websites.thirdPartyCookiesAllowed.set({ value: false });
-    browser.privacy.websites.trackingProtectionMode.set({ value: true });
+    browser.privacy.websites.trackingProtectionMode.set({ value: "global" });
     browser.privacy.websites.cookieConfig.set({
       value: {
         behavior: "reject_third_party",
@@ -116,7 +130,6 @@ function forgetBrowsingData(storedSettings) {
 
   function notify() {
     let dataTypesString = Object.keys(dataTypes).join(", ");
-    let sinceString = new Date(since).toLocaleString();
     chrome.notifications.create({
       type: "basic",
       title: "Removed browsing data",
@@ -131,66 +144,63 @@ function forgetBrowsingData(storedSettings) {
         chrome.history.deleteUrl({
           url: item.url,
         });
-        chrome.browsingData.removeCache({});
-        console.log("cleared Cache");
         chrome.browsingData
           .removePasswords({
             hostnames: [i2pHostName(item.url)],
             since,
           })
-          .then(onContextGotLog);
+          .catch(onError);
         console.log("cleared Passwords");
-        chrome.browsingData
-          .removeDownloads({
-            hostnames: [i2pHostName(item.url)],
-            since,
-          })
-          .then(onContextGotLog);
-        console.log("cleared Downloads");
         chrome.browsingData
           .removeFormData({
             hostnames: [i2pHostName(item.url)],
             since,
           })
-          .then(onContextGotLog);
+          .catch(onError);
         console.log("cleared Form Data");
         chrome.browsingData
           .removeLocalStorage({
             hostnames: [i2pHostName(item.url)],
             since,
           })
-          .then(onContextGotLog);
+          .catch(onError);
         console.log("cleared Local Storage");
 
-        let contexts = chrome.contextualIdentities.query({
-          name: titlepref,
-        });
+        // Firefox-only: contextual identities (containers) and cookies with
+        // firstPartyDomain. Skip entirely on Chrome.
+        if (getBrowser() == "Firefox" && chrome.contextualIdentities) {
+          let contexts = chrome.contextualIdentities.query({
+            name: titlepref,
+          });
 
-        function deepCleanCookies(cookies) {
-          for (let cookie of cookies) {
-            var removing = chrome.cookies.remove({
-              firstPartyDomain: cookie.firstPartyDomain,
-              name: cookie.name,
-              url: item.url,
-            });
-            removing.then(onContextGotLog, onError);
+          function deepCleanCookies(cookies) {
+            for (let cookie of cookies) {
+              var removing = chrome.cookies.remove({
+                firstPartyDomain: cookie.firstPartyDomain,
+                name: cookie.name,
+                url: item.url,
+              });
+              removing.then(onContextGotLog, onError);
+            }
+            console.log("Cleared cookies");
           }
-          console.log("Cleared cookies");
-        }
 
-        function deepCleanContext(cookieStoreIds) {
-          for (let cookieStoreId of cookieStoreIds) {
-            var removing = chrome.cookies.getAll({
-              firstPartyDomain: null,
-              storeId: cookieStoreId.cookieStoreId,
-            });
-            removing.then(deepCleanCookies, onError);
+          function deepCleanContext(cookieStoreIds) {
+            for (let cookieStoreId of cookieStoreIds) {
+              var removing = chrome.cookies.getAll({
+                firstPartyDomain: null,
+                storeId: cookieStoreId.cookieStoreId,
+              });
+              removing.then(deepCleanCookies, onError);
+            }
           }
-        }
 
-        contexts.then(deepCleanContext, onError);
+          contexts.then(deepCleanContext, onError);
+        }
       }
     }
+    // Clear cache unconditionally (removeCache takes no options).
+    chrome.browsingData.removeCache({}).catch(onError);
     notify();
   }
 
@@ -199,7 +209,7 @@ function forgetBrowsingData(storedSettings) {
     startTime: 0,
   });
 
-  searching.then(deepCleanHistory);
+  searching.then(deepCleanHistory, onError);
 
   setAllPrivacy();
   ResetPeerConnection();
@@ -212,7 +222,8 @@ function i2pHostName(url) {
   } else {
     hostname = url.split("/")[0];
   }
-  return hostname;
+  // strip port if present
+  return hostname.split(":")[0];
 }
 
 function i2pHost(url) {

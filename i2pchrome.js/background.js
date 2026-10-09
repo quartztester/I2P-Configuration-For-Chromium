@@ -1,66 +1,28 @@
-function platformCallback(platformInfo) {
-  if (platformInfo.PlatformOs == "android") {
-    console.log("android detected");
-    return true;
-  } else {
-    console.log("desktop detected");
-    return false;
-  }
-}
+/*
+ * i2pchrome.js MV3 service worker.
+ *
+ * In Manifest V3 the background page is replaced by a service worker. All
+ * extension event listeners MUST be registered synchronously at startup, so
+ * anything that depends on stored settings re-applies itself from inside the
+ * storage callback rather than deferring listener registration.
+ */
 
-function isDroid() {
-  return chrome.runtime.getPlatformInfo(platformCallback);
-}
+importScripts("proxy.js", "privacy.js", "info.js");
 
-function isLocalHost(url) {
-  //var x = new RegExp("/(^127\.)|(^192\.168\.)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^::1$)|(^[fF][cCdD])/")
-  var r = false; ///(^127\.)|(^192\.168\.)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^::1$)|(^[fF][cCdD])/.test(url)
-  if (r == false) {
-    r = url.indexOf("://localhost:") != -1;
-  }
-  if (r == false) {
-    r = url.indexOf("://127.0.0.1:") != -1;
-  }
-  console.log("localhost:", r, "on url", url);
-  return r;
-}
+// Group every tab that visits an .i2p origin into a yellow "I2P Browsing"
+// tab group (replaces the old webRequest-based grouping hook, which needed
+// the removed webRequestBlocking permission and fired on every subrequest).
+const groupedTabs = new Set();
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (groupedTabs.has(tabId)) return;
+  const url = tab.url || changeInfo.url || "";
+  if (!/\/\/[^/]*\.i2p\//.test(url) && !/\/\/[^/]*\.i2p$/.test(url)) return;
+  groupedTabs.add(tabId);
+  chrome.tabs.group({ tabIds: tabId }).then((groupId) => {
+    chrome.tabGroups.update(groupId, { color: "yellow", title: "I2P Browsing" });
+  }).catch(() => {
+    groupedTabs.delete(tabId);
+  });
+});
 
-function isRouterHost(url) {
-  var controlPort = 7657; //getControlPort();
-  var r = false;
-  if (r == false) {
-    r = url.indexOf("://localhost:" + controlPort) != -1;
-  }
-  if (r == false) {
-    r = url.indexOf("://127.0.0.1:" + controlPort) != -1;
-  }
-  console.log("routerhost:", r, "on url", url);
-  return r;
-}
-
-chrome.webRequest.onBeforeRequest.addListener(
-  function (details) {
-    let localhost = isLocalHost(details.url);
-    let routerhost = isRouterHost(details.url);
-    console.log("localhost: ", localhost, "routerhost: ", routerhost);
-    if (localhost) {
-      if (!routerhost) {
-        return { cancel: true };
-      }
-    }
-  },
-  { urls: ["<all_urls>"] }
-);
-
-function setupBrowsingGroup(groupid){
-	chrome.tabGroup.update(groupid, {color: "yellow", title: "I2P Browsing"})
-}
-
-chrome.webRequest.onBeforeRequest.addListener(
-  function(details) { 
-	chrome.tabs.group({tabIds: details.tabId}, setupBrowsingGroup)
-	console.log(details);
-	return ;//{cancel: true}; 
-	},
-  {urls: ["*://*.i2p/*"]}
-);
+chrome.tabs.onRemoved.addListener((tabId) => groupedTabs.delete(tabId));

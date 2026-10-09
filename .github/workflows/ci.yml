@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  extension-test:
+    name: Headless MV3 extension test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # On GitHub's Ubuntu runners the apt chromium package is a snap stub;
+      # snap itself works fine there.
+      - name: Install Chromium
+        run: sudo snap install chromium
+
+      - name: Run MV3 extension test
+        run: node test/mv3-extension.test.js
+        env:
+          CHROMIUM: /snap/bin/chromium
+
+  go-build:
+    name: Launcher builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Build all launcher binaries
+        run: |
+          GOOS=windows go build -o i2pchromium.exe .
+          GOOS=darwin  go build -o i2pchromium-darwin .
+          GOOS=linux   go build -o i2pchromium .

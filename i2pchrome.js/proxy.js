@@ -1,5 +1,5 @@
 function platformCallback(platformInfo) {
-    if (platformInfo.PlatformOs == "android") {
+    if (platformInfo.os == "android") {
         console.log("android detected");
         return true;
     } else {
@@ -14,12 +14,18 @@ function isDroid() {
 
 //chrome.privacy.network.peerConnectionEnabled.set({value: false});
 
-chrome.privacy.network.networkPredictionEnabled.set({ value: false });
-chrome.privacy.network.webRTCIPHandlingPolicy.set({
-    value: "disable_non_proxied_udp",
-});
-
-console.log("Preliminarily disabled WebRTC.");
+function disableNetworkPredictions() {
+    try {
+        chrome.privacy.network.networkPredictionEnabled.set({ value: false });
+        chrome.privacy.network.webRTCIPHandlingPolicy.set({
+            value: "disable_non_proxied_udp",
+        });
+        console.log("Preliminarily disabled WebRTC.");
+    } catch (e) {
+        console.error("Could not apply privacy settings:", e);
+    }
+}
+disableNetworkPredictions();
 
 function shouldProxyRequest(requestInfo) {
     return requestInfo.parentFrameId != -1;
@@ -78,18 +84,16 @@ function getControlPort() {
 }
 
 function getBrowser() {
-    if (typeof chrome !== "undefined") {
-        if (typeof browser !== "undefined") {
-            return "Firefox";
-        } else {
-            return "Chrome";
-        }
-    } else {
-        return "Chrome";
+    // Chrome 148+ also defines browser.*, so detect Firefox by an API only it
+    // provides instead of by the namespace's existence.
+    if (
+        typeof browser !== "undefined" &&
+        browser.runtime &&
+        typeof browser.runtime.getBrowserInfo === "function"
+    ) {
+        return "Firefox";
     }
-    /* else {
-       return "Edge";
-     }*/
+    return "Chrome";
 }
 
 function setupProxy() {
@@ -118,13 +122,15 @@ function setupProxy() {
                     host: Host,
                     port: parseInt(Port),
                 },
+                bypassList: ["127.0.0.1", "localhost"],
             },
         };
-        chrome.proxy.settings.set({
+        chrome.proxy.settings.set(
+            {
                 value: config,
                 scope: "regular",
             },
-            function() {}
+            function () {}
         );
     }
 }
@@ -162,7 +168,7 @@ function update(restoredSettings) {
     console.log("restoring control port:", control_port);
 }
 
-chrome.storage.local.get(function(got) {
+chrome.storage.local.get(function (got) {
     checkStoredSettings(got);
     update(got);
     setupProxy();

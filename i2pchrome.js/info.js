@@ -1,38 +1,11 @@
-document.addEventListener("click", (clickEvent) => {
-  if (clickEvent.target.id === "window-create-help-panel") {
-    let createData = {
-      type: "panel",
-      incognito: true,
-    };
-    let creating = chrome.tabs.create(createData);
-    creating.then(() => {
-      console.log("The help panel has been created");
-    });
-  } else if (clickEvent.target.id === "window-create-news-panel") {
-    let createData = {
-      type: "panel",
-      incognito: true,
-    };
-    let creating = chrome.tabs.create(createData);
-    creating.then(() => {
-      console.log("The news panel has been created");
-    });
-  } else if (clickEvent.target.id === "generate-fresh-tunnel") {
-    function refreshIdentity() {
-      console.log("Generating new identity");
-      const Http = new XMLHttpRequest();
-      const url = "http://" + controlHost + ":" + controlPort;
-      Http.open("GET", url);
-      Http.send();
-      Http.onreadystatechange = (event) => {
-        console.log(Http.responseText);
-      };
-    }
+// Loaded by both the popup and the MV3 service worker, which has no DOM.
+const onPopupClick = (clickEvent) => {
+  if (clickEvent.target.id === "generate-fresh-tunnel") {
     refreshIdentity();
-  } else if (clickEvent.target.id === "window-preface-title") {
-    console.log("attempting to create homepage tab");
-    goHome();
-  } else if (clickEvent.target.id === "window-visit-homepage") {
+  } else if (
+    clickEvent.target.id === "window-preface-title" ||
+    clickEvent.target.id === "window-visit-homepage"
+  ) {
     console.log("attempting to create homepage tab");
     goHome();
   } else if (clickEvent.target.id === "window-visit-readme") {
@@ -47,17 +20,17 @@ document.addEventListener("click", (clickEvent) => {
   } else if (clickEvent.target.id === "window-visit-snark") {
     console.log("attempting to create snark tab");
     goSnark();
-  } else if (clickEvent.target.id === "clear-chrome-data") {
+  } else if (
+    clickEvent.target.id === "clear-chrome-data" ||
+    clickEvent.target.id === "clear-browser-data"
+  ) {
     forgetBrowsingData();
-  } else if (clickEvent.target.id === "check-i2p-control") {
-    //echo("I2P Router Detected", "panel-section-i2pcontrol-check");
   } else if (clickEvent.target.id === "enable-web-rtc") {
     if (clickEvent.target.checked) {
       chrome.runtime.sendMessage({ rtc: "enableWebRTC" });
     } else {
       chrome.runtime.sendMessage({ rtc: "disableWebRTC" });
     }
-    checkPeerConnection();
     return;
   } else if (clickEvent.target.id === "disable-history") {
     if (clickEvent.target.checked) {
@@ -68,56 +41,58 @@ document.addEventListener("click", (clickEvent) => {
     return;
   }
 
-  clickEvent.preventDefault();
-});
+  if (clickEvent.target.tagName === "A") {
+    clickEvent.preventDefault();
+  }
+};
 
-function proxyReadiness() {
-  console.log(this.responseText);
+if (typeof document !== "undefined") {
+  document.addEventListener("click", onPopupClick);
 }
 
-control_host = "localhost";
-control_port = "7657";
+// The router console host/port, overridable from the options page.
+var control_host = "localhost";
+var control_port = "7657";
+chrome.storage.local.get(["control_host", "control_port"], function (got) {
+  if (got && got.control_host) control_host = got.control_host;
+  if (got && got.control_port) control_port = got.control_port;
+});
 
-function onTabCreated() {
-  console.log("Tab Created");
+function refreshIdentity() {
+  console.log("Generating new identity");
+  const url = "http://" + control_host + ":" + control_port;
+  fetch(url)
+    .then((r) => console.log("control response:", r.status))
+    .catch((e) => console.log("control fetch failed:", e));
 }
 
 function goIndex() {
-  let createData = {
-    url: "index.html",
-  };
   console.log("visiting readme");
-  let creating = chrome.tabs.create(createData);
+  chrome.tabs.create({ url: chrome.runtime.getURL("index.html") });
 }
 
 function goHome() {
-  let createData = {
-    url: "home.html",
-  };
   console.log("visiting homepage");
-  let creating = chrome.tabs.create(createData);
+  chrome.tabs.create({ url: chrome.runtime.getURL("home.html") });
 }
 
 function goTunnel() {
-  let createData = {
-    url: "http://" + control_host + ":" + control_port + "/i2ptunnel",
-  };
   console.log("visiting i2ptunnel");
-  let creating = chrome.tabs.create(createData);
+  chrome.tabs.create({
+    url: "http://" + control_host + ":" + control_port + "/i2ptunnel",
+  });
 }
 
 function goMail() {
-  let createData = {
-    url: "http://" + control_host + ":" + control_port + "/susimail",
-  };
   console.log("visiting mail");
-  let creating = chrome.tabs.create(createData);
+  chrome.tabs.create({
+    url: "http://" + control_host + ":" + control_port + "/susimail",
+  });
 }
 
 function goSnark() {
-  let createData = {
-    url: "http://" + control_host + ":" + control_port + "/i2psnark",
-  };
   console.log("visiting snark");
-  let creating = chrome.tabs.create(createData);
+  chrome.tabs.create({
+    url: "http://" + control_host + ":" + control_port + "/i2psnark",
+  });
 }

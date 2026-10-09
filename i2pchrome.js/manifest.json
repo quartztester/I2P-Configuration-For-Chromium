@@ -1,26 +1,13 @@
 {
-  "permissions": [
-    "browsingData",
-    "notifications",
-    "proxy",
-    "privacy",
-    "storage",
-    "webRequest",
-    "webRequestBlocking",
-    "*://127.0.0.1/*",
-    "*://localhost/*",
-    "<all_urls>"
-  ],
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "1.28",
+  "version": "2.0.0",
   "description": "__MSG_extensionDescription__",
   "homepage_url": "https://github.com/eyedeekay/I2P-Configuration-For-Chromium",
   "icons": {
     "48": "icons/toopie.png"
   },
-  "browser_action": {
-    "browser_style": true,
+  "action": {
     "default_icon": "icons/toopie.png",
     "default_title": "__MSG_extensionName__",
     "default_popup": "window.html"
@@ -29,11 +16,31 @@
     "page": "options/options.html"
   },
   "background": {
-    "scripts": [
-      "background.js",
-      "proxy.js",
-      "info.js",
-      "privacy.js"
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "browsingData",
+    "history",
+    "notifications",
+    "proxy",
+    "privacy",
+    "storage",
+    "tabGroups",
+    "tabs",
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "*://127.0.0.1/*",
+    "*://localhost/*",
+    "<all_urls>"
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "block_localhost",
+        "enabled": true,
+        "path": "rules/block_localhost.json"
+      }
     ]
   },
   "default_locale": "en"

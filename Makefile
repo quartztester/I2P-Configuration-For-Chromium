@@ -1,5 +1,5 @@
 
-VERSION=0.0.02
+VERSION=2.0.0
 
 all: gen
 	GOOS=windows go build -o i2pchromium.exe
@@ -19,4 +19,7 @@ zip:
 	cd i2pchrome.js && make zip
 
 test:
+	node test/mv3-extension.test.js
+
+test-interactive:
 	chromium --user-data-dir=testchromium --load-extension=./i2pchrome.js

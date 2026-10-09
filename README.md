@@ -19,6 +19,36 @@ with trivial browser-like characteristics.
 
 This is an *EXPERIMENTAL* Procedure.
 
+## What's new in version 2.0.0 (Manifest V3)
+
+Manifest V2 was retired by Google and Chromium; MV2 extensions no longer
+load in current Chromium builds. Version 2.0.0 of this extension is
+Manifest V3:
+
+ * The persistent background page is now a **service worker**
+   (`background.js` + `importScripts` of `proxy.js`/`privacy.js`/`info.js`).
+ * `browser_action` is now `action`.
+ * Blocking of `localhost`/`127.0.0.1`/`[::1]` traffic (so your I2P profile
+   can't leak to local services, with the router console on port 7657 still
+   allowed) moved from blocking `webRequest` — whose `webRequestBlocking`
+   permission MV3 extensions can't have — to a static
+   **`declarativeNetRequest`** ruleset (`rules/block_localhost.json`).
+ * Tab-grouping of I2P windows now uses the `chrome.tabs.onUpdated` +
+   `chrome.tabGroups` APIs instead of a webRequest hook.
+ * Dead references to `home.js`/`index.html` pages that were never shipped
+   in the extension were fixed, and a small `home.js` provides the options
+   page's collapsible sections.
+
+Build the launcher binaries (embeds the extension; regenerate `assets.go`
+after any change under `i2pchrome.js/`, then update `EXTENSIONHASHES` in
+`main.go` with the new `sha256` of the extension directory):
+
+    go run -tags generate gen.go   # regenerate embedded assets
+    make                            # builds .exe, -darwin, and linux launchers
+
+Run the headless automated test (see below) after regenerating to confirm
+the extension still loads and routes.
+
 Privacy Policy
 --------------
 
@@ -68,6 +98,12 @@ that Google makes available via extensions, which is pretty narrow.
  the extension like you normally would, by clicking the "Install in Chrome"
  button. This is an *experimental* extension.
  [i2pchrome.js](https://chrome.google.com/webstore/detail/i2pchromejs/ikdjcmomgldfciocnpekfndklkfgglpe)
+
+ Note: the Chrome Web Store listing is the old Manifest V2 build, which
+ current Chromium refuses to load. Until a new store build is published,
+ load this repository's `i2pchrome.js/` directory unpacked: open
+ `chrome://extensions`, enable **Developer mode**, click **Load unpacked**
+ and select `i2pchrome.js/`.
 
 Pure Terminal Solution, Unix-Only
 ---------------------------------
@@ -124,3 +160,29 @@ an attacker trying to measure Chromium.
         mkdir -p "$CHROMIUM_I2P"
         /usr/bin/chromium-i2p --incognito \
           $@
+
+Automated Extension Test
+------------------------
+
+The Manifest V3 extension can be verified headlessly (needs Chromium at
+`/usr/bin/chromium`; override the path with the `CHROMIUM` environment
+variable):
+
+    node test/mv3-extension.test.js
+
+The test loads `i2pchrome.js/` unpacked in headless Chromium
+(`--headless=new --no-sandbox --load-extension=... --disable-extensions-except=... --remote-debugging-pipe`)
+and checks that the extension's MV3 service worker target starts, that the
+service worker ran `background.js` plus `proxy.js`/`privacy.js`/`info.js`,
+that `chrome.proxy.settings` is a fixed proxy at `127.0.0.1:4444`, that the
+`block_localhost` declarativeNetRequest ruleset is enabled and actually
+blocks plain localhost URLs while still allowing the router console on port
+7657, and that the `window.html` popup loads without console or script
+errors. If the extension's proxy port (4444) is free it stands up a stub
+proxy and counts proxied hits; if a real I2P router owns the port it proves
+routing instead by fetching `http://proxy.i2p/` from the popup — a `.i2p`
+name only resolves through the I2P proxy, so any HTTP response confirms the
+browser is honoring the extension's proxy configuration. It prints one
+`PASS`/`FAIL` line per check and exits 0 only when every check passes.
+GitHub Actions (`.github/workflows/ci.yml`) runs this test headlessly and
+builds the three launcher binaries on every push and pull request.
