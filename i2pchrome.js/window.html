@@ -26,6 +26,12 @@
           <div id="readyness">
               <div id="status-router"><span id="status-router-text">Checking router…</span></div>
               <div id="status-i2p"><span id="status-i2p-text"><a href="#" id="run-e2e">Test .i2p loading now</a></span></div>
+              <div id="router-needed" hidden>
+                <div class="router-needed-box">
+                  <p id="router-needed-why"><strong>No I2P router found.</strong> This extension configures your browser for I2P — it needs the I2P software running on this machine (proxy <code>127.0.0.1:4444</code>, console <code>7657</code>).</p>
+                  <button id="get-router" class="primary">Get the I2P router — geti2p.net</button>
+                </div>
+              </div>
           </div>
         </div>
       <div class="panel-section-separator"></div>

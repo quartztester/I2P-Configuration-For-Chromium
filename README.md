@@ -15,7 +15,9 @@ disabled, and tabs on `.i2p` sites are grouped and badged yellow.
 ## Install
 
 **Requires:** a running I2P router with the HTTP proxy on `4444`
-(default) and console on `7657`.
+(default) and console on `7657`. **No router yet?** Get the official
+I2P software at <https://geti2p.net/en/download/> — the status page
+will remind you and link there if it can't find one.
 
 1. Download the `i2pchrome.js` extension source from the
    [latest release](https://github.com/quartztester/I2P-Configuration-For-Chromium/releases/latest)

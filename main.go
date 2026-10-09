@@ -26,7 +26,7 @@ var EXTENSIONS = []string{"i2pchrome.js"}
 // config while keeping the filename - would pass it. We therefore verify the
 // content hash ourselves before ever launching Chromium with
 // --load-extension, and refuse to start on mismatch.
-var EXTENSIONHASHES = []string{"accdfbcc35e44f039214e23da7d6fe53c72fe7e557dc8896e9b4fc7b4e6393ff"}
+var EXTENSIONHASHES = []string{"bd0c9dea70aa764cb5acf37cee148514b55fc621d09b99b2e703c6181dd08cbb"}
 var ARGS = []string{
 	"--safebrowsing-disable-download-protection",
 	"--disable-client-side-phishing-detection",

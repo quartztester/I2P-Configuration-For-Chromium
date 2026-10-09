@@ -66,3 +66,32 @@ img.readyness {
   padding: .1rem .3rem;
   white-space: normal;
 }
+/* "download a router" callout — visible only when the console probe fails */
+.router-needed-box {
+  border: 1px solid #e6a000;
+  border-left-width: 4px;
+  border-radius: 4px;
+  background: #fff8e6;
+  padding: .5rem .7rem;
+  margin: .4rem 0;
+}
+.router-needed-box p {
+  margin: 0 0 .5rem 0;
+}
+.router-needed-box code {
+  background: #f0f0f0;
+  padding: 0 .2rem;
+  border-radius: 3px;
+}
+#get-router {
+  background: #4a89dc;
+  color: #fff;
+  border: 0;
+  border-radius: 4px;
+  padding: .45rem .8rem;
+  font-size: 13px;
+  cursor: pointer;
+}
+#get-router:hover {
+  background: #3a6fc0;
+}

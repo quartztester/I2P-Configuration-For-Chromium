@@ -11,6 +11,11 @@ const onPopupClick = (clickEvent) => {
   } else if (clickEvent.target.id === "window-visit-debug") {
     console.log("opening diagnostics panel");
     chrome.tabs.create({ url: chrome.runtime.getURL("debug.html") });
+  } else if (clickEvent.target.id === "get-router") {
+    // official I2P download page; opens in the clearnet tab group
+    chrome.tabs.create({ url: "https://geti2p.net/en/download/" }, function () {
+      void chrome.runtime.lastError;
+    });
   } else if (clickEvent.target.id === "window-visit-readme") {
     console.log("attempting to create readme tab");
     goIndex();
@@ -70,6 +75,9 @@ function popupStatusInit() {
       ? "● Router reachable — warming up: " + (last.net_text || "network integrating") + ". First .i2p loads typically take a few minutes after I2P starts."
       : "● Router console OK — network ready (" + (last.net_text || "OK") + ")";
     router.style.color = !ok ? "#c62828" : warm ? "#e6a000" : "#2e7d32";
+    // show the "download a router" callout only when the console is unreachable
+    var need = document.getElementById("router-needed");
+    if (need) need.hidden = !(!ok);
   }
   chrome.storage.local.get(["debug_last_probe"], function (got) {
     var last = got.debug_last_probe;
@@ -118,6 +126,20 @@ function popupStatusInit() {
 
 if (typeof document !== "undefined") {
   document.addEventListener("DOMContentLoaded", popupStatusInit);
+}
+
+// "Get the I2P router" callout: shown only when the console is unreachable.
+function getRouterInit() {
+  var btn = document.getElementById("get-router");
+  if (!btn) return;
+  btn.addEventListener("click", function (ev) {
+    ev.preventDefault();
+    chrome.tabs.create({ url: "https://geti2p.net/en/download" });
+  });
+}
+
+if (typeof document !== "undefined") {
+  document.addEventListener("DOMContentLoaded", getRouterInit);
 }
 
 // Master switch on the status page: mirrors the toolbar-icon checkbox.
