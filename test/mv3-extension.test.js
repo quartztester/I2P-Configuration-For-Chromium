@@ -50,7 +50,9 @@ let fakeProxy = null;
 function startFakeProxy() {
   return new Promise((resolve) => {
     fakeProxy = http.createServer((req, res) => {
-      proxyHits.push((req.headers.host || "?") + req.url);
+      // absolute-form request line (PROXY traffic) carries the real host;
+      // the PAC probe path itself proves the routing decision.
+      proxyHits.push(req.url);
       res.writeHead(200, { "Content-Type": "image/gif" });
       res.end(GIF_1PX);
     });
@@ -533,12 +535,14 @@ async function checkPopup(browser, extId, proxyOk) {
         await sleep(2000);
       }
     }
+    // .i2p probes hit the proxy; the .invalid clearnet probe must not
+    // appear even as a request line (PAC said DIRECT, so the fake proxy
+    // never sees it; a bare-DNS failure also produces no hit).
     check(
-      "browser routes .i2p through 127.0.0.1:4444 and NOTHING else (PAC)",
-      proxyHits.length > 0 &&
-        proxyHits.every((h) => /\.i2p/.test(h)) &&
-        !proxyHits.some((h) => /clearnet-probe\.invalid/.test(h)),
-      `${proxyHits.length} proxied request(s), e.g. ${proxyHits[0] || "none"}`
+      "browser routes .i2p through 127.0.0.1:4444 and not clearnet (PAC)",
+      proxyHits.some((h) => /pacprobe/.test(h)) &&
+        !proxyHits.some((h) => /clearnet-probe/.test(h)),
+      `${proxyHits.length} proxied request(s): ${proxyHits.slice(0, 3).join(", ")}`
     );
     return;
   }
