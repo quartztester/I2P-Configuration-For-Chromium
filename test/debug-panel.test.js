@@ -197,7 +197,7 @@ async function main() {
     );
     check(
       "debugState reports proxy config + DNR",
-      stObj.proxyMode === "fixed_servers" && stObj.dnr.includes("block_localhost"),
+      stObj.proxyMode === "pac_script" && stObj.dnr.includes("block_localhost"),
       st
     );
 

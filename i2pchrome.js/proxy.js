@@ -101,13 +101,27 @@ function setupProxy() {
     var Port = getPort();
     var Scheme = getScheme();
     if (typeof dbg === "function")
-        dbg("setupProxy: " + Scheme + " " + Host + ":" + Port + " bypass=127.0.0.1,localhost");
+        dbg(
+            "setupProxy: PAC — .i2p via " +
+                Scheme +
+                " " +
+                Host +
+                ":" +
+                Port +
+                ", everything else DIRECT"
+        );
 
     function handleProxyRequest(requestInfo) {
-        return { type: Scheme, host: Host, port: Port };
+        // Firefox mirror of the PAC below: only .i2p names take the router.
+        var m = /^[a-z][a-z0-9+.-]*:\/\/([^\/:?#]+)/i.exec(requestInfo.url);
+        var h = (m ? m[1] : "").toLowerCase();
+        if (h.slice(-4) === ".i2p" || h === "i2p") {
+            return { type: Scheme, host: Host, port: Port };
+        }
+        return { type: "direct" };
     }
     if (getBrowser() == "Firefox") {
-        console.log("Registering Firefox proxy", {
+        console.log("Registering Firefox proxy (.i2p only)", {
             type: Scheme,
             host: Host,
             port: Port,
@@ -116,16 +130,23 @@ function setupProxy() {
             urls: ["<all_urls>"],
         });
     } else {
+        // Mixed browsing: only I2P names go through the router; every other
+        // site connects directly, so normal browsing keeps working with the
+        // switch on. fixed_servers would send the WHOLE profile through the
+        // I2P proxy, which refuses clearnet URLs.
+        var kw = Scheme === "socks" ? "SOCKS5" : "PROXY";
+        var pac =
+            "function FindProxyForURL(url, host) {\n" +
+            "  if (dnsDomainIs(host.toLowerCase(), '.i2p'))\n" +
+            "    return '" + kw + " " + Host + ":" + Port + "';\n" +
+            "  return 'DIRECT';\n" +
+            "}";
+        // NOTE: on current Chromium the pacScript must be the object form
+        // ({data,url,mandatory}); a bare string throws "Invalid invocation"
+        // and the whole set silently fails. Verified on Chromium 154/Brave 155.
         var config = {
-            mode: "fixed_servers",
-            rules: {
-                singleProxy: {
-                    scheme: Scheme,
-                    host: Host,
-                    port: parseInt(Port),
-                },
-                bypassList: ["127.0.0.1", "localhost"],
-            },
+            mode: "pac_script",
+            pacScript: { data: pac, url: "", mandatory: false },
         };
         chrome.proxy.settings.set(
             {

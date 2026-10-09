@@ -17,7 +17,7 @@ disabled, and tabs on `.i2p` sites are grouped and badged yellow.
 **Requires:** a running I2P router with the HTTP proxy on `4444`
 (default) and console on `7657`.
 
-1. Download `i2pchrome.js-2.2.0-unpacked.zip` from the
+1. Download `i2pchrome.js-2.2.1-unpacked.zip` from the
    [latest release](https://github.com/quartztester/I2P-Configuration-For-Chromium/releases/latest) and unzip it.
 2. Create a fresh Chromium profile (chrome://settings → Add person) —
    **do not sign in / enable sync** on it.
@@ -26,10 +26,10 @@ disabled, and tabs on `.i2p` sites are grouped and badged yellow.
    The toolbar icon is the status light: **green dot** = I2P on and the
    router answers, **red dot** = on but the router is unreachable (start
    I2P), **grey dot** = switched off.
-4. Browse `.i2p` sites. **Type the full URL, including `http://`**
-   (e.g. `http://zzz.i2p/`) — Chrome does not recognize `.i2p` as a
-   domain, so typing bare `zzz.i2p` in a new tab sends it to your search
-   engine instead of the proxy.
+4. Browse normally — `.i2p` and clearnet side by side. **Type the full
+   `.i2p` URL, including `http://`** (e.g. `http://zzz.i2p/`) — Chrome
+   does not recognize `.i2p` as a domain, so typing bare `zzz.i2p` in a
+   new tab sends it to your search engine instead of the proxy.
 5. **Right-click the toolbar icon** for the menu: toggle **Enable I2P
    proxy** off/on (off restores your normal browsing proxy instantly),
    open the status page (left-click does this too), Diagnostics, or
@@ -58,7 +58,7 @@ shows its upgrade warning.
 
 | Area | Behavior |
 |---|---|
-| Proxy | fixed proxy `127.0.0.1:4444` via `chrome.proxy`, bypass for localhost |
+| Proxy | mixed browsing via PAC: **only `.i2p`** goes through `127.0.0.1:4444`, every other site connects directly — normal browsing keeps working with I2P on. (Firefox: equivalent `proxy.onRequest` filter. Older builds proxied the whole profile, which broke clearnet sites.) |
 | Localhost block | static declarativeNetRequest rules block `localhost`/`127.0.0.1`/`[::1]` (any port, incl. bare `http://localhost/`), allow only `:7657` |
 | WebRTC | `disable_non_proxied_udp` (no UDP leak around the proxy) |
 | Leak services | SafeBrowsing (leaks .i2p URL hash-prefixes to Google unproxied), hyperlink auditing, referrers, third-party cookies, predictions, translate/autofill/suggest — all off |

@@ -27,16 +27,18 @@ function SetControlHostText() {
 function setupProxy() {
   var Host = getHost();
   var Port = getPort();
-  var Scheme = getScheme();
+  // Mixed browsing: only .i2p goes through the router, everything else
+  // direct. Must mirror proxy.js — a fixed_servers config here would send
+  // the whole profile to I2P and break normal sites.
+  var pac =
+    "function FindProxyForURL(url, host) {\n" +
+    "  if (dnsDomainIs(host.toLowerCase(), '.i2p'))\n" +
+    "    return 'PROXY " + Host + ":" + Port + "';\n" +
+    "  return 'DIRECT';\n" +
+    "}";
   var config = {
-    mode: "fixed_servers",
-    rules: {
-      singleProxy: {
-        scheme: Scheme,
-        host: Host,
-        port: parseInt(Port),
-      },
-    },
+    mode: "pac_script",
+    pacScript: { data: pac, url: "", mandatory: false },
   };
   chrome.proxy.settings.set(
     {

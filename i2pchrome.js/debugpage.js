@@ -92,14 +92,16 @@ function renderState(st) {
 
   var ps = st.proxySetting;
   var proxySet =
-    ps && typeof ps === "object" && ps.mode === "fixed_servers";
+    ps &&
+    typeof ps === "object" &&
+    (ps.mode === "fixed_servers" || ps.mode === "pac_script");
   var psJson = JSON.stringify(ps || {});
-  var pointsAtRouter = /4444|"http"|"socks"/.test(psJson);
+  var pointsAtRouter = /4444|"http"|"socks"/.test(psJson) || ps.mode === "pac_script";
   c.push(
     card(
       "chrome proxy config",
       verdict(
-        proxySet ? pointsAtRouter ? "fixed_servers → router" : "fixed_servers (unexpected values)" : String((ps && ps.mode) || "not set"),
+        proxySet ? pointsAtRouter ? ps.mode + " → router" : ps.mode + " (unexpected values)" : String((ps && ps.mode) || "not set"),
         proxySet && pointsAtRouter,
         !proxySet
           ? "something cleared the proxy (level: " +

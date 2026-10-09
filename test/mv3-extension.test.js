@@ -50,7 +50,7 @@ let fakeProxy = null;
 function startFakeProxy() {
   return new Promise((resolve) => {
     fakeProxy = http.createServer((req, res) => {
-      proxyHits.push(req.url);
+      proxyHits.push((req.headers.host || "?") + req.url);
       res.writeHead(200, { "Content-Type": "image/gif" });
       res.end(GIF_1PX);
     });
@@ -368,9 +368,10 @@ async function main() {
         JSON.stringify(loaded)
       );
 
-      // (c) chrome.proxy.settings shows the extension's fixed proxy config.
-      // The master switch (status.js) applies the proxy right after boot but
-      // asynchronously (storage round-trip), so poll instead of reading once.
+      // (c) chrome.proxy.settings shows the extension's PAC config (.i2p
+      // through the router, everything else direct). The master switch
+      // (status.js) applies it right after boot but asynchronously (storage
+      // round-trip), so poll instead of reading once.
       let settings = null;
       const deadline = Date.now() + 8000;
       for (;;) {
@@ -383,21 +384,31 @@ async function main() {
           settings = { error: String(e) };
         }
         const done =
-          settings && settings.value && settings.value.mode === "fixed_servers";
+          settings && settings.value && settings.value.mode === "pac_script";
         if (done || Date.now() > deadline) break;
         await sleep(400);
       }
-      const single =
+      let pac =
         settings && settings.value && settings.value.rules
-          ? settings.value.rules.singleProxy
-          : null;
+          ? settings.value.rules.pacScript || ""
+          : "";
+      if (!pac && settings && settings.value && settings.value.pacScript) {
+        pac =
+          typeof settings.value.pacScript === "string"
+            ? settings.value.pacScript
+            : settings.value.pacScript.data || "";
+      }
       check(
-        "chrome.proxy.settings: fixed_servers -> 127.0.0.1:4444",
-        !!single &&
-          settings.value.mode === "fixed_servers" &&
-          single.host === "127.0.0.1" &&
-          single.port === PROXY_PORT,
-        JSON.stringify(settings && settings.value)
+        "chrome.proxy.settings: pac_script routing .i2p -> PROXY 127.0.0.1:4444",
+        settings &&
+          settings.value &&
+          settings.value.mode === "pac_script" &&
+          /dnsDomainIs\(host\.toLowerCase\(\), '\.i2p'\)/.test(pac) &&
+          pac.includes("PROXY 127.0.0.1:" + PROXY_PORT) &&
+          /return 'DIRECT';/.test(pac),
+        settings && settings.value
+          ? "mode=" + settings.value.mode + " pac.len=" + pac.length
+          : JSON.stringify(settings)
       );
 
       // (d) declarativeNetRequest static ruleset enabled, and its rules
@@ -499,9 +510,34 @@ async function checkPopup(browser, extId, proxyOk) {
       : `chrome APIs available (manifest v${version})`
   );
   if (proxyOk) {
+    // Mixed-browsing PAC: only .i2p takes the proxy. Navigate a tab to a
+    // .i2p name — the fake proxy answers anything, so a hit proves the PAC
+    // routed .i2p to 127.0.0.1:4444.
+    const nt = await browser.send("Target.createTarget", { url: "about:blank" });
+    if (nt.result) {
+      const nsid = await browser.attach(nt.result.targetId, "pacprobe");
+      if (nsid) {
+        await browser.send("Page.enable", {}, nsid);
+        await browser.send(
+          "Page.navigate",
+          { url: "http://pacprobe.i2p/?t=" + Date.now() },
+          nsid
+        );
+        await sleep(3000);
+        // and a NON-.i2p host: must NOT reach the proxy (direct instead)
+        await browser.send(
+          "Page.navigate",
+          { url: "http://clearnet-probe.invalid/?t=" + Date.now() },
+          nsid
+        );
+        await sleep(2000);
+      }
+    }
     check(
-      "browser actually routes traffic through 127.0.0.1:4444",
-      proxyHits.length > 0,
+      "browser routes .i2p through 127.0.0.1:4444 and NOTHING else (PAC)",
+      proxyHits.length > 0 &&
+        proxyHits.every((h) => /\.i2p/.test(h)) &&
+        !proxyHits.some((h) => /clearnet-probe\.invalid/.test(h)),
       `${proxyHits.length} proxied request(s), e.g. ${proxyHits[0] || "none"}`
     );
     return;

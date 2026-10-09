@@ -151,13 +151,13 @@ function kill() {
           5000
         );
         proxyOK =
-          r.result && r.result.result && r.result.result.value === "fixed_servers";
+          r.result && r.result.result && /fixed_servers|pac_script/.test(r.result.result.value);
       }
     }
     if (!proxyOK) await sleep(1000);
   }
   if (!proxyOK) {
-    log("FAIL: extension never applied a fixed_servers proxy config");
+    log("FAIL: extension never applied its proxy config (pac_script/fixed_servers)");
     kill();
     process.exit(1);
   }

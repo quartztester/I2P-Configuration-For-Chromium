@@ -36,6 +36,16 @@ function statusFromHttp(r) {
   return "HTTP " + r.status;
 }
 
+function failReason(e) {
+  // "TypeError: Failed to fetch" means nothing answered the TCP request
+  // (connection refused / no router running); say so in plain words.
+  var name = e && e.name ? e.name : String(e);
+  if (name === "TypeError" || /Failed to fetch/.test(String(e)))
+    return "no router answering (is I2P running on this machine?)";
+  if (/AbortError/.test(name)) return "timed out (router not answering)";
+  return "FAIL: " + name;
+}
+
 function probeRouterConsole() {
   var url =
     "http://" +
@@ -45,9 +55,7 @@ function probeRouterConsole() {
     "/";
   return fetchWithTimeout(url, 3500)
     .then(statusFromHttp)
-    .catch(function (e) {
-      return "FAIL: " + (e && e.name ? e.name : String(e));
-    });
+    .catch(failReason);
 }
 
 function probeProxyPort() {
@@ -65,9 +73,7 @@ function probeProxyPort() {
     .then(function () {
       return fetchWithTimeout(url, 3500).then(statusFromHttp);
     })
-    .catch(function (e) {
-      return "FAIL: " + (e && e.name ? e.name : String(e));
-    })
+    .catch(failReason)
     .then(function (out) {
       // await the re-enable so concurrent callers never race the window
       return chrome.declarativeNetRequest

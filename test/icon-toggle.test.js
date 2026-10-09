@@ -106,7 +106,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const localhostBlocked = () => evalin(swSid, "chrome.declarativeNetRequest.testMatchOutcome({url:'http://localhost:631/',type:'main_frame'}).then(r=>r.matchedRules.length)");
 
     // ON state (default boot)
-    check("boot: proxy configured (fixed_servers)", (await proxyMode()) === "fixed_servers");
+    check("boot: proxy configured (pac_script)", (await proxyMode()) === "pac_script");
     check("boot: localhost firewall armed", (await rulesets()).includes("block_localhost"));
     check("boot: localhost traffic blocked", (await localhostBlocked()) > 0);
 
@@ -136,7 +136,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     // switch ON
     await evalin(ps, "(()=>{const b=document.getElementById('enable-master');b.checked=true;b.dispatchEvent(new Event('change'));return 1})()");
     await sleep(2500);
-    check("ON: proxy restored", (await proxyMode()) === "fixed_servers");
+    check("ON: proxy restored", (await proxyMode()) === "pac_script");
     check("ON: localhost firewall re-armed", (await rulesets()).includes("block_localhost"));
     check("ON: icon title says ON", /ON/.test(await title()));
   } catch (e) {
