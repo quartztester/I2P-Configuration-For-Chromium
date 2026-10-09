@@ -4,7 +4,7 @@
     "priority": 1,
     "action": { "type": "block" },
     "condition": {
-      "regexFilter": "^\\w+://(127\\.0\\.0\\.1|localhost|\\[::1\\]):",
+      "regexFilter": "^\\w+://(127\\.0\\.0\\.1|localhost|\\[::1\\])(:|/|$)",
       "resourceTypes": [
         "main_frame",
         "sub_frame",
@@ -27,7 +27,7 @@
     "priority": 2,
     "action": { "type": "allow" },
     "condition": {
-      "regexFilter": "^\\w+://(127\\.0\\.0\\.1|localhost|\\[::1\\]):7657",
+      "regexFilter": "^\\w+://(127\\.0\\.0\\.1|localhost|\\[::1\\]):7657(:|/|$)",
       "resourceTypes": [
         "main_frame",
         "sub_frame",

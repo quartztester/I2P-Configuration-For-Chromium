@@ -27,6 +27,13 @@ jobs:
         env:
           CHROMIUM: /snap/bin/chromium
 
+      # Skips itself when no I2P router answers on 127.0.0.1:4444 (always
+      # the case on GitHub runners), so it never breaks CI.
+      - name: Run live .i2p end-to-end test (skips without a router)
+        run: node test/live-i2p-e2e.test.js
+        env:
+          CHROMIUM: /snap/bin/chromium
+
   go-build:
     name: Launcher builds
     runs-on: ubuntu-latest

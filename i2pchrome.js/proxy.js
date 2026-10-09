@@ -150,7 +150,7 @@ function checkStoredSettings(storedSettings) {
         defaultSettings["control_host"] = "127.0.0.1";
     }
     if (!storedSettings.control_port) {
-        defaultSettings["control_port"] = 4444;
+        defaultSettings["control_port"] = 7657;
     }
     chrome.storage.local.set(defaultSettings);
 }

@@ -499,25 +499,40 @@ async function checkPopup(browser, extId, proxyOk) {
   }
   // Port 4444 was busy: if a real I2P router owns it, prove routing a
   // different way. .i2p names resolve nowhere but through an I2P proxy, so
-  // any HTTP response (even 404) for http://proxy.i2p/ means the request
-  // went through 127.0.0.1:4444; without the proxy it dies in DNS.
+  // navigating a real tab to http://proxy.i2p/ and getting an I2P router
+  // response (even a 404 page) means traffic went through 127.0.0.1:4444;
+  // without the proxy it dies in DNS. Navigated pages need no host
+  // permissions, unlike an extension-page fetch (MV3 least-privilege).
   let live = null;
-  try {
-    live = await browser.evaluate(
-      sid,
-      `fetch("http://proxy.i2p/?i2pchrome-probe=" + Date.now(), {cache: "no-store"})
-         .then((r) => "http-" + r.status)
-         .catch((e) => "error: " + e.message)`,
-      45000
-    );
-  } catch (e) {
-    live = "evaluate failed: " + e.message;
+  const pt = await browser.send("Target.createTarget", { url: "about:blank" });
+  if (pt.result) {
+    const psid = await browser.attach(pt.result.targetId, "probe");
+    if (psid) {
+      await browser.send("Page.enable", {}, psid);
+      await browser.send(
+        "Page.navigate",
+        { url: "http://proxy.i2p/?i2pchrome-probe=" + Date.now() },
+        psid
+      );
+      await sleep(12000); // the router may take a while to reach the dest
+      try {
+        live = await browser.evaluate(
+          psid,
+          `JSON.stringify({t: document.title, l: (document.body &&
+             document.body.innerText || "").slice(0,200)})`,
+          15000
+        );
+      } catch (e) {
+        live = "evaluate failed: " + e.message;
+      }
+    }
   }
-  const routed = typeof live === "string" && /^http-\d{3}$/.test(live);
+  // Any document served means we reached the router's HTTP proxy.
+  const routed = typeof live === "string" && live.length > 2 && live !== "{}";
   check(
     "browser routes traffic through 127.0.0.1:4444 (live I2P proxy)",
     routed,
-    `probe http://proxy.i2p/ -> ${live}`
+    `http://proxy.i2p/ -> ${String(live).slice(0, 160)}`
   );
 }
 

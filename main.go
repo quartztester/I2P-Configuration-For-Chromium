@@ -4,17 +4,28 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	. "github.com/eyedeekay/go-ccw"
 )
 
 var EXTENSIONS = []string{"i2pchrome.js"}
-var EXTENSIONHASHES = []string{"28bc823bdcf0a28a26d36b21d8dff5bf232f2380ab8c105aa1e268ba5be31f73"}
+
+// EXTENSIONHASHES is a SHA-256 over the extension directory's file paths AND
+// contents (see dirContentHash below). The upstream go-ccw integrity check
+// (hashdir) only hashes file *names*, so an attacker who swapped the bytes
+// of an existing file - e.g. replacing proxy.js with a non-anonymizing
+// config while keeping the filename - would pass it. We therefore verify the
+// content hash ourselves before ever launching Chromium with
+// --load-extension, and refuse to start on mismatch.
+var EXTENSIONHASHES = []string{"ac4bc5b20b948cbc4a99fb12ee6a376ef22e1de85268b25833705fb1455f3675"}
 var ARGS = []string{
 	"--safebrowsing-disable-download-protection",
 	"--disable-client-side-phishing-detection",
@@ -107,9 +118,52 @@ func writeProfile(system http.FileSystem) {
 	}
 }
 
+func verifyExtensionContents(dirs, want []string) error {
+	for i, dir := range dirs {
+		h := sha256.New()
+		err := filepath.Walk(dir, func(p string, info os.FileInfo, err error) error {
+			if err != nil {
+				return nil //nolint:nilerr // skip unreadable entries, same as hashdir
+			}
+			if info.IsDir() {
+				// Chromium generates _metadata/ inside an unpacked
+				// extension at runtime; it is derived output, not source.
+				if info.Name() == "_metadata" {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			io.WriteString(h, p)
+			f, ferr := os.Open(p)
+			if ferr != nil {
+				return ferr
+			}
+			defer f.Close()
+			if _, cerr := io.Copy(h, f); cerr != nil {
+				return cerr
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		got := fmt.Sprintf("%x", h.Sum(nil))
+		if got != want[i] {
+			return fmt.Errorf("extension content mismatch for %s: want %s got %s", dir, want[i], got)
+		}
+	}
+	return nil
+}
+
 func main() {
 	writeProfile(FS)
-	CHROMIUM, ERROR = SecureExtendedChromium("i2pchromium-browser", false, EXTENSIONS, EXTENSIONHASHES, ARGS...)
+	// verifyExtensionContents is strictly stronger than the path-name-only
+	// check inside go-ccw's SecureExtendedChromium, so we gate on it and use
+	// the plain launcher (which performs no hash check of its own).
+	if err := verifyExtensionContents(EXTENSIONS, EXTENSIONHASHES); err != nil {
+		log.Fatal("refusing to launch: ", err)
+	}
+	CHROMIUM, ERROR = ExtendedChromium("i2pchromium-browser", false, EXTENSIONS, ARGS...)
 	if ERROR != nil {
 		log.Fatal(ERROR)
 	}

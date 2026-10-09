@@ -21,5 +21,8 @@ zip:
 test:
 	node test/mv3-extension.test.js
 
+test-live:
+	node test/live-i2p-e2e.test.js
+
 test-interactive:
 	chromium --user-data-dir=testchromium --load-extension=./i2pchrome.js

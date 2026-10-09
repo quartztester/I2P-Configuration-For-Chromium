@@ -45,9 +45,16 @@ function setAllPrivacy() {
     } catch (e) {
       console.log("Some Chrome privacy controls are unavailable:", e);
     }
-    // SafeBrowsing is intentionally NOT disabled: enterprise/cloud-managed
-    // Chrome rejects privacy.services.safeBrowsingEnabled writes and the
-    // extension should degrade gracefully rather than throw on those builds.
+    // SafeBrowsing is disabled deliberately: its URL-prefix lookups are NOT
+    // proxied by chrome.proxy — they go straight to Google over the clearnet
+    // and would leak the hash-prefix of every .i2p URL visited. The lookup is
+    // also useless inside I2P (Google's lists contain no .i2p destinations).
+    // Cloud/enterprise-managed Chrome rejects this write; the throw is caught.
+    try {
+      chrome.privacy.services.safeBrowsingEnabled.set({ value: false });
+    } catch (e) {
+      console.log("safeBrowsingEnabled unavailable (managed build?):", e);
+    }
     // doNotTrack was removed from Chrome; only attempt it if present.
     if (chrome.privacy.websites.doNotTrackEnabled) {
       try {

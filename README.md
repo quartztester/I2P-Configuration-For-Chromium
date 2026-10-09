@@ -186,3 +186,55 @@ browser is honoring the extension's proxy configuration. It prints one
 `PASS`/`FAIL` line per check and exits 0 only when every check passes.
 GitHub Actions (`.github/workflows/ci.yml`) runs this test headlessly and
 builds the three launcher binaries on every push and pull request.
+
+A second suite, `test/live-i2p-e2e.test.js`, is the real end-to-end check:
+with **no** command-line proxy flags it lets the extension apply its own
+proxy config, then navigates to live eepsites (`zzz.i2p`, `proxy.i2p`,
+`planet.i2p`) and requires at least 2 to render. It needs a running I2P
+router; if `127.0.0.1:4444` doesn't answer it skips itself so CI stays green
+without one.
+
+Security & privacy notes
+------------------------
+
+What the extension guards against, verified against this codebase:
+
+ * All traffic (incl. WebRTC UDP via `disable_non_proxied_udp`) is forced
+   through the I2P HTTP proxy; direct `localhost`/`127.0.0.1`/`[::1]`
+   requests are blocked by declarativeNetRequest **including bare
+   `http://localhost/` with no port**, with the router console on `:7657`
+   exempted by exact port.
+ * SafeBrowsing is disabled on purpose: SafeBrowsing lookups are *not*
+   proxied by `chrome.proxy` — they go straight to Google over the clearnet
+   and would leak hash-prefixes of every `.i2p` URL visited.
+ * Hyperlink auditing, referrer sending, third-party cookies, prediction
+   services, and Google translate/autofill/search-suggest round-trippers
+   are all switched off.
+ * `host_permissions` are `127.0.0.1`/`localhost` only — no `<all_urls>`.
+   MV3 does not require a host grant to navigate tabs through the proxy,
+   and navigation-based tests work without one.
+ * The launcher verifies a **SHA-256 over the extension directory's file
+   paths and contents** before launching Chromium and refuses to start on
+   mismatch (the upstream `hashdir` check it replaced hashed file *names*
+   only, which a same-path file swap would defeat).
+
+Known limitations (inherent to the approach, read before relying on it):
+
+ * `chrome.proxy` and `chrome.privacy` are **browser-wide** and there is no
+   per-profile API — this is why the instructions insist on a dedicated
+   "I2P Browsing Mode" profile that never touches the clearnet.
+ * Chromium itself sends quota-integrity/parsing telemetry that no
+   extension API can disable; that traffic bypasses `chrome.proxy`. Use
+   ungoogled-chromium (or the flags in the shell-wrapper recipe) if that
+   matters.
+ * Plain HTTP over the I2P proxy is not end-to-end encrypted: the hop from
+   your router's proxy port to the router is localhost, but eepsite-to-
+   router is only as private as the eepsite's I2P destination keys.
+ * The bundled `index.html`/`home.html` contain links to GitHub; they are
+   user-clicked, never auto-fetched.
+
+Audit TODO (upstream decisions needed): the committed `1.26.tar.gz` and
+`i2psetproxy.js@eyedeekay.github.io.xpi` are Firefox-side reference
+artifacts, not load order dependencies; the `--disable-32-apis` flag in
+`main.go` is a long-standing typo for `--disable-3d-apis` (duplicate,
+harmless).

@@ -31,8 +31,7 @@
   ],
   "host_permissions": [
     "*://127.0.0.1/*",
-    "*://localhost/*",
-    "<all_urls>"
+    "*://localhost/*"
   ],
   "declarative_net_request": {
     "rule_resources": [
