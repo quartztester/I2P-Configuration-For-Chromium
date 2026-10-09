@@ -75,9 +75,17 @@ function probeProxyPort() {
     })
     .catch(failReason)
     .then(function (out) {
-      // await the re-enable so concurrent callers never race the window
-      return chrome.declarativeNetRequest
-        .updateEnabledRulesets({ enableRulesetIds: ["block_localhost"] })
+      // await the re-enable so concurrent callers never race the window —
+      // but never re-arm the firewall if the master switch is OFF
+      // (status.js owns that state; probe must not resurrect it).
+      var want =
+        typeof i2pEnabledState !== "function" || i2pEnabledState();
+      var p2 = want
+        ? chrome.declarativeNetRequest.updateEnabledRulesets({
+            enableRulesetIds: ["block_localhost"],
+          })
+        : Promise.resolve();
+      return p2
         .catch(function () {})
         .then(function () {
           return out;
@@ -107,7 +115,9 @@ function probeI2PViaProxy() {
                 t.status === "complete" &&
                 (t.url || "").indexOf("proxy.i2p") >= 0
               ) {
-                finish("loaded through I2P" + (t.title ? " — title: " + t.title.slice(0, 60) : ""));
+                // Title comes from an arbitrary eepsite; it is escaped on
+                // render, but keep it out of persisted storage too.
+                finish("loaded through I2P");
                 done = true;
               }
               if (done) {

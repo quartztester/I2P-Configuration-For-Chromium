@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "__MSG_extensionDescription__",
-  "homepage_url": "https://github.com/eyedeekay/I2P-Configuration-For-Chromium",
+  "homepage_url": "https://github.com/quartztester/I2P-Configuration-For-Chromium",
   "icons": {
     "48": "icons/toopie.png"
   },

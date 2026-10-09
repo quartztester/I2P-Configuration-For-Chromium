@@ -25,27 +25,33 @@ function SetControlHostText() {
 }
 
 function setupProxy() {
-  var Host = getHost();
-  var Port = getPort();
-  // Mixed browsing: only .i2p goes through the router, everything else
-  // direct. Must mirror proxy.js — a fixed_servers config here would send
-  // the whole profile to I2P and break normal sites.
-  var pac =
-    "function FindProxyForURL(url, host) {\n" +
-    "  if (dnsDomainIs(host.toLowerCase(), '.i2p'))\n" +
-    "    return 'PROXY " + Host + ":" + Port + "';\n" +
-    "  return 'DIRECT';\n" +
-    "}";
-  var config = {
-    mode: "pac_script",
-    pacScript: { data: pac, url: "", mandatory: false },
-  };
-  chrome.proxy.settings.set(
-    {
-      value: config,
-      scope: "regular",
-    },
-    function () {}
+  // The service worker's proxy.js owns the PAC (single source of truth).
+  // Saving options just stores values; ask the worker to re-apply so the
+  // two can never drift into different proxy shapes.
+  chrome.runtime.sendMessage(
+    { i2p: "proxy", op: "apply" },
+    function (resp) {
+      if (chrome.runtime.lastError) {
+        // Worker asleep (page kept open in background): apply directly
+        // with the same PAC shape as proxy.js.
+        var pac =
+          "function FindProxyForURL(url, host) {\n" +
+          "  if (dnsDomainIs(host.toLowerCase(), '.i2p'))\n" +
+          "    return 'PROXY " + getHost() + ":" + getPort() + "';\n" +
+          "  return 'DIRECT';\n" +
+          "}";
+        chrome.proxy.settings.set(
+          {
+            value: {
+              mode: "pac_script",
+              pacScript: { data: pac, url: "", mandatory: false },
+            },
+            scope: "regular",
+          },
+          function () {}
+        );
+      }
+    }
   );
 }
 

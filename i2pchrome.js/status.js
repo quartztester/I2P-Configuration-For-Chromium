@@ -218,11 +218,17 @@ chrome.storage.local.get(null, function (got) {
   applyEnabledState();
 });
 
-/* Messages used by the status page (window.html) toggle. */
+/* Messages used by the status page (window.html) toggle and the options
+ * page (re-apply proxy after saving). */
 chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
   if (!msg || msg.i2p !== "master") return;
-  if (msg.op === "getState") {
-    sendResponse({ enabled: i2pEnabledCached });
+  if (msg.op === "apply" && typeof setupProxy === "function") {
+    if (!i2pEnabledCached) {
+      sendResponse({ applied: false, reason: "switch off" });
+      return;
+    }
+    setupProxy();
+    sendResponse({ applied: true });
     return;
   }
   if (msg.op === "setEnabled") {

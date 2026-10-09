@@ -2,7 +2,12 @@
  * (debug.js) and renders a status panel + event timeline. Also runs the
  * one test the worker cannot: fetch an .i2p site THROUGH the proxy, since
  * requests from this extension page are routed by chrome.proxy just like
- * normal tabs. */
+ * normal tabs.
+ *
+ * SECURITY: every dynamic string rendered here is escaped with esc().
+ * Probe results can carry an arbitrary eepsite's <title>; the extension
+ * page holds history/tabs/browsingData permissions, so an unescaped title
+ * would be XSS in a privileged context. */
 
 var lastState = null;
 window.__debugpageLoaded = new Date().toISOString();
@@ -11,10 +16,20 @@ function el(id) {
   return document.getElementById(id);
 }
 
+/* HTML-escape anything interpolated into markup. */
+function esc(s) {
+  return String(s === undefined || s === null ? "" : s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function card(title, valueHtml, cls) {
   return (
     '<div class="card"><h2>' +
-    title +
+    esc(title) +
     '</h2><div class="' +
     (cls || "mono") +
     '">' +
@@ -30,9 +45,9 @@ function verdict(text, ok, note) {
     cls +
     '">' +
     (ok === true ? "● " : ok === false ? "✗ " : "◐ ") +
-    text +
+    esc(text) +
     "</span>" +
-    (note ? '<div class="hint">' + note + "</div>" : "")
+    (note ? '<div class="hint">' + esc(note) + "</div>" : "")
   );
 }
 
@@ -43,6 +58,11 @@ function classifyProbe(s) {
     return {
       ok: false,
       s: "connection refused/reset (nothing listening)",
+    };
+  if (s.indexOf("no router answering") === 0)
+    return {
+      ok: false,
+      s: "no router answering (connection refused)",
     };
   if (s.indexOf("AbortError") >= 0)
     return { ok: false, s: "timed out (3.5s) — port filtered or black-holed" };
@@ -190,9 +210,9 @@ function renderLog(entries) {
     .map(function (e) {
       return (
         "<div><span class='t'>" +
-        e.t +
+        esc(e.t) +
         "</span>" +
-        String(e.msg).replace(/&/g, "&amp;").replace(/</g, "&lt;") +
+        esc(e.msg) +
         "</div>"
       );
     })
