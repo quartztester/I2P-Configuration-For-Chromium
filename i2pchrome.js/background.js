@@ -7,7 +7,15 @@
  * storage callback rather than deferring listener registration.
  */
 
-importScripts("proxy.js", "privacy.js", "info.js");
+importScripts("proxy.js", "privacy.js", "info.js", "debuglog.js", "debug.js");
+
+dbg("service worker started");
+chrome.runtime.onStartup.addListener(function () {
+  dbg("browser startup");
+});
+chrome.runtime.onInstalled.addListener(function (d) {
+  dbg("installed/updated reason=" + (d && d.reason));
+});
 
 // Group every tab that visits an .i2p origin into a yellow "I2P Browsing"
 // tab group (replaces the old webRequest-based grouping hook, which needed
@@ -26,3 +34,9 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => groupedTabs.delete(tabId));
+
+// Detect someone else (policy, another extension, a manual setting)
+// clearing or replacing our proxy configuration while the browser runs.
+chrome.proxy.settings.onChange.addListener((details) => {
+  dbg("proxy setting changed by: " + (details && details.levelOfControl));
+});

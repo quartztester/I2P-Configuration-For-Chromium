@@ -8,6 +8,9 @@ const onPopupClick = (clickEvent) => {
   ) {
     console.log("attempting to create homepage tab");
     goHome();
+  } else if (clickEvent.target.id === "window-visit-debug") {
+    console.log("opening diagnostics panel");
+    chrome.tabs.create({ url: chrome.runtime.getURL("debug.html") });
   } else if (clickEvent.target.id === "window-visit-readme") {
     console.log("attempting to create readme tab");
     goIndex();

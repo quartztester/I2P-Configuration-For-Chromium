@@ -17,7 +17,7 @@ disabled, and tabs on `.i2p` sites are grouped and badged yellow.
 **Requires:** a running I2P router with the HTTP proxy on `4444`
 (default) and console on `7657`.
 
-1. Download `i2pchrome.js-2.0.0-unpacked.zip` from the
+1. Download `i2pchrome.js-2.1.0-unpacked.zip` from the
    [latest release](https://github.com/quartztester/I2P-Configuration-For-Chromium/releases/latest) and unzip it.
 2. Create a fresh Chromium profile (chrome://settings → Add person) —
    **do not sign in / enable sync** on it.
@@ -25,6 +25,12 @@ disabled, and tabs on `.i2p` sites are grouped and badged yellow.
    **Load unpacked**, select the unzipped folder.
 4. Browse `.i2p` sites. The toolbar popup links to the router console
    tools (i2ptunnel, susimail, snark) and clears browsing data on demand.
+5. If `.i2p` sites do not load, click **Diagnostics** in the popup: it
+   probes the router console and proxy ports, the browser proxy
+   configuration (including who controls it), the localhost-block ruleset
+   and SafeBrowsing state, runs a live `.i2p` page-load test, and keeps a
+   togglable event timeline. **Copy report** produces a paste-ready
+   bundle for bug reports.
 
 The Chrome Web Store listing is the retired MV2 build and will not load
 in current Chromium; use the steps above.
@@ -43,13 +49,16 @@ in current Chromium; use the steps above.
 ## Testing
 
 ```
-make test        # headless MV3 suite: 8 checks, exits non-zero on failure
+make test        # all suites + launcher round-trip/tamper gate, non-zero on failure
 make test-live   # needs a running router: loads real eepsites end-to-end
 ```
 
 `test/mv3-extension.test.js` loads the extension in headless Chromium over
 CDP and asserts service-worker startup, proxy config, DNR rule outcomes,
-popup health, and real proxy routing. `test/live-i2p-e2e.test.js` applies
+popup health, and real proxy routing. `test/debug-panel.test.js` opens the
+Diagnostics panel itself and checks its probes, cards, timeline, e2e
+`.i2p` load and reset path against a live router.
+`test/live-i2p-e2e.test.js` applies
 no CLI proxy flags, lets the extension configure itself, and requires
 ≥2/3 live eepsites (zzz, proxy, planet) to render; it self-skips when no
 router is listening. CI runs both plus launcher builds for

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>I2P Extension Diagnostics</title>
+    <style>
+      body {
+        font: 13px/1.5 system-ui, sans-serif;
+        margin: 0;
+        background: #17181a;
+        color: #d8d8d8;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px;
+        background: #1f2023;
+        border-bottom: 1px solid #333;
+        position: sticky;
+        top: 0;
+      }
+      h1 { font-size: 15px; margin: 0; flex: 1; }
+      button {
+        background: #2d5f2d;
+        color: #fff;
+        border: 0;
+        border-radius: 4px;
+        padding: 5px 12px;
+        cursor: pointer;
+      }
+      button.secondary { background: #3a3b3f; }
+      button.danger { background: #6f2c2c; }
+      main { padding: 16px; max-width: 1100px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-bottom: 16px; }
+      .card { background: #1f2023; border: 1px solid #333; border-radius: 6px; padding: 10px 12px; }
+      .card h2 { margin: 0 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; }
+      .ok { color: #79c479; }
+      .bad { color: #e57373; }
+      .warn { color: #e6b35c; }
+      .mono { font-family: ui-monospace, monospace; font-size: 12px; word-break: break-all; }
+      #log {
+        background: #101113;
+        border: 1px solid #333;
+        border-radius: 6px;
+        padding: 8px;
+        height: 45vh;
+        overflow-y: auto;
+        font-family: ui-monospace, monospace;
+        font-size: 12px;
+        white-space: pre-wrap;
+      }
+      #log div { border-bottom: 1px solid #1c1d20; padding: 1px 4px; }
+      .t { color: #666; margin-right: 8px; }
+      label.toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+      details { margin-top: 12px; }
+      summary { cursor: pointer; color: #9ab; }
+      pre { background: #101113; border: 1px solid #333; border-radius: 6px; padding: 10px; overflow-x: auto; font-size: 11px; }
+      .hint { color: #999; margin-top: 4px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>I2P Extension Diagnostics</h1>
+      <label class="toggle"><input type="checkbox" id="logging" /> logging</label>
+      <button id="refresh">Refresh</button>
+      <button id="copy" class="secondary">Copy report</button>
+      <button id="reset" class="danger">Reset extension</button>
+    </header>
+    <main>
+      <div class="grid" id="cards"></div>
+      <div class="grid" id="e2ewrap"></div>
+      <div id="advice"></div>
+      <h2 style="font-size: 12px; color: #888">EVENT TIMELINE (last 300)</h2>
+      <div id="log"></div>
+      <details>
+        <summary>Raw state (JSON)</summary>
+        <pre id="raw"></pre>
+      </details>
+    </main>
+    <script>
+      window.__dbgErr = [];
+      window.addEventListener("error", function (e) {
+        window.__dbgErr.push("onerror: " + e.message + " @" + (e.filename || "") + ":" + (e.lineno || 0));
+      });
+      window.addEventListener("unhandledrejection", function (e) {
+        window.__dbgErr.push("rejection: " + String((e.reason && e.reason.message) || e.reason));
+      });
+    </script>
+    <script src="debuglog.js"></script>
+    <script src="debugpage.js"></script>
+  </body>
+</html>

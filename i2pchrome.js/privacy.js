@@ -43,6 +43,8 @@ function setAllPrivacy() {
       chrome.privacy.websites.hyperlinkAuditingEnabled.set({ value: false });
       chrome.privacy.websites.referrersEnabled.set({ value: false });
     } catch (e) {
+      if (typeof dbg === "function")
+        dbg("privacy partial: " + String(e));
       console.log("Some Chrome privacy controls are unavailable:", e);
     }
     // SafeBrowsing is disabled deliberately: its URL-prefix lookups are NOT
@@ -53,6 +55,8 @@ function setAllPrivacy() {
     try {
       chrome.privacy.services.safeBrowsingEnabled.set({ value: false });
     } catch (e) {
+      if (typeof dbg === "function")
+        dbg("safeBrowsing disable failed: " + String(e));
       console.log("safeBrowsingEnabled unavailable (managed build?):", e);
     }
     // doNotTrack was removed from Chrome; only attempt it if present.

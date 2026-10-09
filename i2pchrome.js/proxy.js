@@ -100,6 +100,8 @@ function setupProxy() {
     var Host = getHost();
     var Port = getPort();
     var Scheme = getScheme();
+    if (typeof dbg === "function")
+        dbg("setupProxy: " + Scheme + " " + Host + ":" + Port + " bypass=127.0.0.1,localhost");
 
     function handleProxyRequest(requestInfo) {
         return { type: Scheme, host: Host, port: Port };
@@ -130,7 +132,15 @@ function setupProxy() {
                 value: config,
                 scope: "regular",
             },
-            function () {}
+            function () {
+                if (typeof dbg === "function")
+                    dbg(
+                        "chrome.proxy.settings.set: " +
+                            (chrome.runtime.lastError
+                                ? "ERR " + chrome.runtime.lastError.message
+                                : "ok")
+                    );
+            }
         );
     }
 }
@@ -169,6 +179,8 @@ function update(restoredSettings) {
 }
 
 chrome.storage.local.get(function (got) {
+    if (typeof dbg === "function")
+        dbg("restored settings: " + JSON.stringify(got));
     checkStoredSettings(got);
     update(got);
     setupProxy();

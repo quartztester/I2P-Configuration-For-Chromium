@@ -34,6 +34,13 @@ jobs:
         env:
           CHROMIUM: /snap/bin/chromium
 
+      # Same self-skip: exercises the Diagnostics panel only when a router
+      # is reachable (e.g. self-hosted runners).
+      - name: Run debug panel test (skips without a router)
+        run: node test/debug-panel.test.js
+        env:
+          CHROMIUM: /snap/bin/chromium
+
   go-build:
     name: Launcher builds
     runs-on: ubuntu-latest

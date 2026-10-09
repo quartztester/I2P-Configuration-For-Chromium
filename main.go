@@ -25,7 +25,7 @@ var EXTENSIONS = []string{"i2pchrome.js"}
 // config while keeping the filename - would pass it. We therefore verify the
 // content hash ourselves before ever launching Chromium with
 // --load-extension, and refuse to start on mismatch.
-var EXTENSIONHASHES = []string{"01e1f021f290f61eca2876a47a6ba5f6310d6f5de57f06b85ae442a7e0e95516"}
+var EXTENSIONHASHES = []string{"ef6c69e1a7a1b77825b1c0c1b10776581ec14993ff70fa2402ee74601861d52a"}
 var ARGS = []string{
 	"--safebrowsing-disable-download-protection",
 	"--disable-client-side-phishing-detection",
@@ -108,6 +108,10 @@ func writeProfile(system http.FileSystem) {
 			os.MkdirAll("i2pchrome.js/icons", FS.Mode())
 			os.MkdirAll("i2pchrome.js/options", FS.Mode())
 			os.MkdirAll("i2pchrome.js/_locales/en", FS.Mode())
+			// every asset directory must exist before writeExtension can drop
+			// files into it; a missing one (e.g. rules/ for the MV3 DNR ruleset)
+			// previously log.Fatal'ed mid-extraction
+			os.MkdirAll("i2pchrome.js/rules", FS.Mode())
 			for _, val := range embedded {
 				writeExtension(val, FS)
 			}

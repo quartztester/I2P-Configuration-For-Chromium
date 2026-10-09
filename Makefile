@@ -1,5 +1,5 @@
 
-VERSION=2.0.0
+VERSION=2.1.0
 # GitHub owner for `make release` (gothub -u). Built-in $(USER) is the login
 # name, so use a dedicated variable defaulting to upstream.
 GHUSER ?= eyedeekay
@@ -22,7 +22,7 @@ zip:
 	cd i2pchrome.js && make zip
 
 test:
-	node test/mv3-extension.test.js
+	bash test/run-all.sh
 
 test-live:
 	node test/live-i2p-e2e.test.js
