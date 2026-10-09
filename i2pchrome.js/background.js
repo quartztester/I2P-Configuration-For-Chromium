@@ -7,7 +7,14 @@
  * storage callback rather than deferring listener registration.
  */
 
-importScripts("proxy.js", "privacy.js", "info.js", "debuglog.js", "debug.js");
+importScripts(
+  "debuglog.js",
+  "proxy.js",
+  "privacy.js",
+  "info.js",
+  "debug.js",
+  "status.js"
+);
 
 dbg("service worker started");
 chrome.runtime.onStartup.addListener(function () {

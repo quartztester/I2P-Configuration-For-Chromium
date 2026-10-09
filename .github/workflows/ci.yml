@@ -41,6 +41,11 @@ jobs:
         env:
           CHROMIUM: /snap/bin/chromium
 
+      - name: Run icon + master-switch test
+        run: node test/icon-toggle.test.js
+        env:
+          CHROMIUM: /snap/bin/chromium
+
   go-build:
     name: Launcher builds
     runs-on: ubuntu-latest

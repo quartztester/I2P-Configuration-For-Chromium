@@ -84,8 +84,7 @@ function setAllPrivacy() {
   return chrome.runtime.getPlatformInfo(disableDigitalRestrictionsManagement);
 }
 
-setAllPrivacy();
-
+// setAllPrivacy() is called by status.js when the master switch is ON.
 function ResetPeerConnection() {
   AssurePeerConnection();
 }
@@ -101,7 +100,10 @@ function AssurePeerConnection() {
   });
 }
 
-chrome.tabs.onCreated.addListener(AssurePeerConnection);
+chrome.tabs.onCreated.addListener(function () {
+  if (typeof i2pEnabledState === "function" && !i2pEnabledState()) return;
+  AssurePeerConnection();
+});
 
 var defaultSettings = {
   since: "forever",

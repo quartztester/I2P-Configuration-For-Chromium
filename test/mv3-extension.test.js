@@ -368,15 +368,24 @@ async function main() {
         JSON.stringify(loaded)
       );
 
-      // (c) chrome.proxy.settings shows the extension's fixed proxy config
+      // (c) chrome.proxy.settings shows the extension's fixed proxy config.
+      // The master switch (status.js) applies the proxy right after boot but
+      // asynchronously (storage round-trip), so poll instead of reading once.
       let settings = null;
-      try {
-        settings = await browser.evaluate(
-          swSid,
-          `new Promise((r) => chrome.proxy.settings.get({}, (s) => r(s)))`
-        );
-      } catch (e) {
-        settings = { error: String(e) };
+      const deadline = Date.now() + 8000;
+      for (;;) {
+        try {
+          settings = await browser.evaluate(
+            swSid,
+            `new Promise((r) => chrome.proxy.settings.get({}, (s) => r(s)))`
+          );
+        } catch (e) {
+          settings = { error: String(e) };
+        }
+        const done =
+          settings && settings.value && settings.value.mode === "fixed_servers";
+        if (done || Date.now() > deadline) break;
+        await sleep(400);
       }
       const single =
         settings && settings.value && settings.value.rules

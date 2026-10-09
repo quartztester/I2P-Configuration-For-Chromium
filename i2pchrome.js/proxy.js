@@ -25,7 +25,7 @@ function disableNetworkPredictions() {
         console.error("Could not apply privacy settings:", e);
     }
 }
-disableNetworkPredictions();
+// Applied from status.js / privacy.js when the master switch is ON.
 
 function shouldProxyRequest(requestInfo) {
     return requestInfo.parentFrameId != -1;
@@ -183,12 +183,15 @@ chrome.storage.local.get(function (got) {
         dbg("restored settings: " + JSON.stringify(got));
     checkStoredSettings(got);
     update(got);
-    setupProxy();
+    // NOTE: no setupProxy() here. The master switch in status.js owns
+    // (re)application so that the menu toggle can actually keep the proxy
+    // off; a blanket auto-apply here used to resurrect it on every reload.
 });
 
-setupProxy();
-
 chrome.windows.onCreated.addListener(() => {
+    // status.js may not be loaded in contexts that only pull in proxy.js
+    // (popup, tests). Only auto-apply when no master switch disagrees.
+    if (typeof i2pEnabledState === "function" && !i2pEnabledState()) return;
     const gettingStoredSettings = chrome.storage.local.get();
     gettingStoredSettings.then(setupProxy, onError);
 });

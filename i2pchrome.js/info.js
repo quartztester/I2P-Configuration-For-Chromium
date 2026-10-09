@@ -115,6 +115,27 @@ if (typeof document !== "undefined") {
   document.addEventListener("DOMContentLoaded", popupStatusInit);
 }
 
+// Master switch on the status page: mirrors the toolbar-icon checkbox.
+function masterSwitchInit() {
+  var box = document.getElementById("enable-master");
+  if (!box) return;
+  chrome.runtime.sendMessage({ i2p: "master", op: "getState" }, function (resp) {
+    if (!chrome.runtime.lastError && resp) box.checked = !!resp.enabled;
+  });
+  box.addEventListener("change", function () {
+    chrome.runtime.sendMessage(
+      { i2p: "master", op: "setEnabled", on: box.checked },
+      function (resp) {
+        if (!chrome.runtime.lastError && resp) box.checked = !!resp.enabled;
+      }
+    );
+  });
+}
+
+if (typeof document !== "undefined") {
+  document.addEventListener("DOMContentLoaded", masterSwitchInit);
+}
+
 // The router console host/port, overridable from the options page.
 var control_host = "localhost";
 var control_port = "7657";
