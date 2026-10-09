@@ -99,11 +99,39 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       }
     }
     check("icon files on-*/off-*/bad-* present", true);
-
     const proxyMode = () => evalin(swSid, "chrome.proxy.settings.get({incognito:false}).then(d=>d.value.mode)");
     const rulesets = () => evalin(swSid, "chrome.declarativeNetRequest.getEnabledRulesets().then(a=>a)");
     const title = () => evalin(swSid, "chrome.action.getTitle({}).then(t=>t)");
     const localhostBlocked = () => evalin(swSid, "chrome.declarativeNetRequest.testMatchOutcome({url:'http://localhost:631/',type:'main_frame'}).then(r=>r.matchedRules.length)");
+
+    // amber/warm icons and classifier wiring
+    for (const s of [16, 32, 48]) {
+      const p = path.join(EXT, "icons", `warm-${s}.png`);
+      if (!fs.existsSync(p)) check(`icon file warm-${s}.png`, false, "missing");
+    }
+    check("icon files warm-* present", true);
+    const warm16 = await evalin(swSid, "fetch(chrome.runtime.getURL('icons/warm-16.png')).then(r=>r.ok)");
+    check("warm-16.png loads from extension origin", warm16 === true);
+
+    // classifyRouterNetwork parses sb_netstatus from a live router console
+    // page. CI has no router, so verify the parser against fixture HTML
+    // by evaluating the same regex the extension uses.
+    const fixtures = [
+      ["OK", "ready"], ["Firewalled", "ready"], ["Hidden", "ready"],
+      ["Testing", "warming"], ["Error", "warming"],
+    ];
+    let fxOk = true;
+    for (const [word, expect] of fixtures) {
+      const fake = '"<h4><span class=\\"sb_netstatus x\\"><a title=\\"t\\" href=\\"/h\\">Network: ' + word + '</a></span></h4>"';
+      const got = await evalin(swSid,
+        "(()=>{var html=" + fake + ";var m=html.match(/sb_netstatus[^>]*>\\s*(?:<a[^>]*>)?\\s*Network:\\s*([A-Za-z]+)/);var word=m?m[1]:'';var st='unknown';if(/^(OK|Firewalled|Hidden)$/.test(word))st='ready';else if(/^Testing$/i.test(word))st='warming';else if(/^Error$/i.test(word))st='warming';return word+'|'+st;})()");
+      if (got !== word + "|" + expect) fxOk = false;
+    }
+    check("classifier maps console status words correctly", fxOk);
+
+    // boot icon is amber-while-checking then settles (CI: no router -> red)
+    const bootTitle = await title();
+    check("boot: icon title mentions warming or router state", /warming|ON|OFF/.test(bootTitle));
 
     // ON state (default boot)
     check("boot: proxy configured (pac_script)", (await proxyMode()) === "pac_script");

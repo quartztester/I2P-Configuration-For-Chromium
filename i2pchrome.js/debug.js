@@ -58,6 +58,43 @@ function probeRouterConsole() {
     .catch(failReason);
 }
 
+/* Classify the router's network integration from the console homepage's
+ * sb_netstatus cell. i2pd and the Java router both render one of:
+ *   running  -> Network: OK      (fully integrated, client tunnels fine)
+ *   warning/testing -> Network: Testing / Firewalled / Hidden
+ *   error    -> Network: Error
+ * "Firewalled"/"Hidden" still browse fine (symmetric NAT/DHT-only), so they
+ * count as ready; only Testing means tunnels are still being built. */
+function classifyRouterNetwork() {
+  var url =
+    "http://" +
+    (typeof control_host !== "undefined" ? control_host : "127.0.0.1") +
+    ":" +
+    (typeof control_port !== "undefined" ? control_port : 7657) +
+    "/";
+  return fetchWithTimeout(url, 3500)
+    .then(function (r) {
+      if (!r.ok) return { ok: true, state: "unknown", text: "HTTP " + r.status };
+      return r
+        .text()
+        .then(function (html) {
+          var m = html.match(/sb_netstatus[^>]*>\s*(?:<a[^>]*>)?\s*Network:\s*([A-Za-z]+)/);
+          var word = m ? m[1] : "";
+          var st = "unknown";
+          if (/^(OK|Firewalled|Hidden)$/.test(word)) st = "ready";
+          else if (/^Testing$/i.test(word)) st = "warming";
+          else if (/^Error$/i.test(word)) st = "warming";
+          return { ok: true, state: st, text: word || "Network status not found" };
+        })
+        .catch(function () {
+          return { ok: true, state: "unknown", text: "console body unreadable" };
+        });
+    })
+    .catch(function (e) {
+      return { ok: false, state: "down", text: failReason(e) };
+    });
+}
+
 function probeProxyPort() {
   // Our own DNR ruleset blocks http://127.0.0.1:<anything> except :7657,
   // so probing the proxy port requires briefly suspending it. The window
@@ -231,7 +268,7 @@ function debugState() {
       // getEnabledRulesets() would catch it mid-flight.
       dnrSnapshot().then(function (dnr) {
         Promise.all([
-          probeRouterConsole(),
+          classifyRouterNetwork(),
           probeProxyPort(),
           readChromeSetting("proxy"),
           readPrivacyStatuses(),
@@ -244,7 +281,9 @@ function debugState() {
               time: new Date().toISOString(),
               stored: stored,
               probes: {
-                router_console: r[0],
+                router_console: r[0].ok ? "HTTP 200 (" + r[0].text + ")" : r[0].text,
+                net_status: r[0].state,
+                net_text: r[0].text,
                 proxy_port: r[1],
               },
               proxySetting: r[2],
@@ -292,9 +331,15 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
     return true;
   }
   if (msg.debug === "probe" || msg.debug === "probes") {
-    Promise.all([probeRouterConsole(), probeProxyPort()])
+    Promise.all([classifyRouterNetwork(), probeProxyPort()])
       .then(function (r) {
-        var out = { router_console: r[0], proxy_port: r[1] };
+        var out = {
+          router_console: r[0].ok ? "HTTP 200 (" + r[0].text + ")" : r[0].text,
+          net_status: r[0].state,
+          net_text: r[0].text,
+          proxy_port: r[1],
+          at: new Date().toISOString(),
+        };
         chrome.storage.local.set({ debug_last_probe: out });
         sendResponse(out);
       })

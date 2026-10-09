@@ -83,14 +83,17 @@ function renderState(st) {
   var stored = st.stored || {};
   var consoleV = classifyProbe(st.probes && st.probes.router_console);
   var proxyV = classifyProbe(st.probes && st.probes.proxy_port);
+  var netState = st.probes && st.probes.net_status;
 
   c.push(
     card(
       "router console",
       verdict(
         "127.0.0.1:" + (stored.control_port || 7657) + " → " + consoleV.s,
-        consoleV.ok,
-        consoleV.ok
+        netState === "warming" ? null : consoleV.ok,
+        netState === "warming"
+          ? "router is building tunnels — .i2p pages will start loading when the dot turns green (typically a few minutes)"
+          : consoleV.ok
           ? undefined
           : "start the I2P router; check its console port in Router Console → Configuration"
       )

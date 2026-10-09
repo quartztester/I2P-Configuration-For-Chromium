@@ -14,6 +14,10 @@ run() { # name, timeout, script
 run "mv3-extension" 170 test/mv3-extension.test.js
 run "debug-panel"   170 test/debug-panel.test.js
 run "icon-toggle"   170 test/icon-toggle.test.js
+# amber/green/red state machine against a mock console — no router needed
+run "e2e-v223"      175 test/e2e-v223.test.js
+# live classify needs a real router on 127.0.0.1:7657; self-skips otherwise
+run "live-classify" 90  test/live-classify.test.js
 # live suite self-skips when no router is on 127.0.0.1:4444
 run "live-i2p-e2e"  280 test/live-i2p-e2e.test.js
 

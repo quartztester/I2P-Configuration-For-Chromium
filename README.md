@@ -17,14 +17,19 @@ disabled, and tabs on `.i2p` sites are grouped and badged yellow.
 **Requires:** a running I2P router with the HTTP proxy on `4444`
 (default) and console on `7657`.
 
-1. Download `i2pchrome.js-2.2.2-unpacked.zip` from the
-   [latest release](https://github.com/quartztester/I2P-Configuration-For-Chromium/releases/latest) and unzip it.
+1. Download the `i2pchrome.js` extension source from the
+   [latest release](https://github.com/quartztester/I2P-Configuration-For-Chromium/releases/latest)
+   (or clone this repo and use the `i2pchromium` launcher, which bundles and
+   verifies it).
 2. Create a fresh browser profile (chrome://settings → Add profile, or
    Brave's profile manager) — **do not sign in / enable sync** on it.
 3. Open `chrome://extensions`, enable **Developer mode**, click
    **Load unpacked**, select the unzipped folder.
    The toolbar icon is the status light: **green dot** = I2P on and the
-   router answers, **red dot** = on but the router is unreachable (start
+   router is integrated (Network: OK/Firewalled/Hidden), **amber dot** =
+   router reachable but still warming up (building tunnels — the first few
+   minutes after I2P starts; .i2p pages will begin loading once it turns
+   green), **red dot** = on but the router console is unreachable (start
    I2P), **grey dot** = switched off.
 4. Browse normally — `.i2p` and clearnet side by side. **Type the full
    `.i2p` URL, including `http://`** (e.g. `http://zzz.i2p/`) — Chrome

@@ -135,27 +135,37 @@ function setIconState(state, title) {
   } catch (e) {}
 }
 
-/* Lightweight health check: does the router console answer? (The proxy-port
- * probe would need to suspend the localhost firewall rules, which is too
- * invasive to run on a timer; debug.html still offers the full set.) */
+/* Lightweight health check: does the router console answer, and is the
+ * router's network integration ready? (The proxy-port probe would need to
+ * suspend the localhost firewall rules, which is too invasive to run on a
+ * timer; debug.html still offers the full set.) */
 function runHealthCheck() {
   if (!i2pEnabledCached) {
     setIconState("off", "I2P is OFF — right-click the icon to enable");
     return Promise.resolve("off");
   }
-  if (typeof probeRouterConsole !== "function") return Promise.resolve("no-probe");
-  return probeRouterConsole().then(function (result) {
-    var ok = result.indexOf("HTTP") === 0;
+  if (typeof classifyRouterNetwork !== "function") return Promise.resolve("no-probe");
+  return classifyRouterNetwork().then(function (cls) {
+    var ok = cls.ok;
+    var ready = ok && cls.state === "ready";
+    var warming = ok && (cls.state === "warming" || cls.state === "unknown");
     chrome.storage.local.set({
-      debug_last_probe: { router_console: result, at: new Date().toISOString() },
+      debug_last_probe: {
+        router_console: ok ? "HTTP 200 (" + cls.text + ")" : cls.text,
+        net_status: cls.state,
+        net_text: cls.text,
+        at: new Date().toISOString(),
+      },
     });
     setIconState(
-      ok ? "on" : "bad",
-      ok
-        ? "I2P is ON — router reachable (" + result + ")"
+      ready ? "on" : ok ? "warm" : "bad",
+      ready
+        ? "I2P is ON — router reachable, network " + cls.text + " (" + cls.state + ")"
+        : warming
+        ? "I2P is ON — router is warming up: " + cls.text + " (building tunnels, typically a few minutes)"
         : "I2P is ON but the router console is unreachable — start I2P, or right-click the icon for diagnostics"
     );
-    return ok ? "on" : "bad";
+    return ready ? "on" : ok ? "warm" : "bad";
   });
 }
 
@@ -215,6 +225,7 @@ chrome.storage.local.get(null, function (got) {
     if (typeof update === "function") update(got || {});
   } catch (e) {}
   dbg("boot: enabled=" + i2pEnabledCached);
+  if (i2pEnabledCached) setIconState("warm", "I2P is ON — checking router…");
   applyEnabledState();
 });
 
@@ -241,5 +252,17 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
 
 chrome.alarms.create("i2p-health", { periodInMinutes: 1 });
 chrome.alarms.onAlarm.addListener(function (a) {
-  if (a.name === "i2p-health") runHealthCheck();
+  if (a.name === "i2p-health") {
+    runHealthCheck().then(function (state) {
+      // While the router is warming up, re-check every 20s so the dot turns
+      // green within seconds of integration completing (not up to a minute).
+      if (state === "warm") {
+        chrome.alarms.create("i2p-warm", { periodInMinutes: 0.33 });
+      } else if (state === "on" || state === "bad") {
+        chrome.alarms.clear("i2p-warm");
+      }
+    });
+  } else if (a.name === "i2p-warm") {
+    runHealthCheck();
+  }
 });

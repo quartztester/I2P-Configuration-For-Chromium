@@ -61,26 +61,31 @@ function popupStatusInit() {
   var router = document.getElementById("status-router-text");
   var i2p = document.getElementById("status-i2p-text");
   if (!router || !i2p) return;
+  function render(last) {
+    var ok = last && last.router_console && last.router_console.indexOf("HTTP") === 0;
+    var warm = ok && last.net_status && last.net_status !== "ready";
+    router.textContent = !ok
+      ? "● Router console unreachable: " + (last ? last.router_console : "?")
+      : warm
+      ? "● Router reachable — warming up: " + (last.net_text || "network integrating") + ". First .i2p loads typically take a few minutes after I2P starts."
+      : "● Router console OK — network ready (" + (last.net_text || "OK") + ")";
+    router.style.color = !ok ? "#c62828" : warm ? "#e6a000" : "#2e7d32";
+  }
   chrome.storage.local.get(["debug_last_probe"], function (got) {
     var last = got.debug_last_probe;
-    if (last) {
-      router.textContent =
-        (last.router_console && last.router_console.indexOf("HTTP") === 0
-          ? "● Router console OK (" + last.router_console + ")"
-          : "● Router console unreachable: " + (last.router_console || "?"));
-      router.style.color =
-        last.router_console && last.router_console.indexOf("HTTP") === 0
-          ? "#2e7d32"
-          : "#c62828";
-    }
+    if (last) render(last);
   });
   chrome.runtime.sendMessage({ debug: "probes" }, function (resp) {
     if (chrome.runtime.lastError || !resp) return;
-    var ok = resp.router_console && resp.router_console.indexOf("HTTP") === 0;
-    router.textContent = ok
-      ? "● Router console OK (" + resp.router_console + ")"
-      : "● Router console unreachable: " + resp.router_console;
-    router.style.color = ok ? "#2e7d32" : "#c62828";
+    render({
+      router_console: resp.router_console,
+      net_status: resp.net_status,
+      net_text: resp.net_text,
+    });
+  });
+  // re-render when the worker's periodic health check updates storage
+  chrome.storage.onChanged.addListener(function (changes, area) {
+    if (area === "local" && changes.debug_last_probe) render(changes.debug_last_probe.newValue);
   });
   function showE2e(rec) {
     var ok = rec && !/^FAIL/.test(rec.result);
