@@ -53,6 +53,68 @@ if (typeof document !== "undefined") {
   document.addEventListener("click", onPopupClick);
 }
 
+// Popup readiness indicators. The old markup was static text plus images
+// fetched from http://proxy.i2p/ which 404 even on healthy routers, so the
+// popup claimed "Proxy is not ready." forever. These ask the service worker
+// instead and report what it actually sees.
+function popupStatusInit() {
+  var router = document.getElementById("status-router-text");
+  var i2p = document.getElementById("status-i2p-text");
+  if (!router || !i2p) return;
+  chrome.storage.local.get(["debug_last_probe"], function (got) {
+    var last = got.debug_last_probe;
+    if (last) {
+      router.textContent =
+        (last.router_console && last.router_console.indexOf("HTTP") === 0
+          ? "● Router console OK (" + last.router_console + ")"
+          : "● Router console unreachable: " + (last.router_console || "?"));
+      router.style.color =
+        last.router_console && last.router_console.indexOf("HTTP") === 0
+          ? "#2e7d32"
+          : "#c62828";
+    }
+  });
+  chrome.runtime.sendMessage({ debug: "probes" }, function (resp) {
+    if (chrome.runtime.lastError || !resp) return;
+    var ok = resp.router_console && resp.router_console.indexOf("HTTP") === 0;
+    router.textContent = ok
+      ? "● Router console OK (" + resp.router_console + ")"
+      : "● Router console unreachable: " + resp.router_console;
+    router.style.color = ok ? "#2e7d32" : "#c62828";
+  });
+  function showE2e(rec) {
+    var ok = rec && !/^FAIL/.test(rec.result);
+    i2p.textContent = "● " + (rec ? rec.result : "?");
+    i2p.style.color = ok ? "#2e7d32" : "#c62828";
+  }
+  chrome.storage.local.get(["debug_last_e2e"], function (got) {
+    if (got.debug_last_e2e) showE2e(got.debug_last_e2e);
+    else i2p.textContent = "● Last .i2p test: none yet";
+  });
+  // poll storage: the probe outlives the popup when it opens its tab
+  chrome.storage.onChanged.addListener(function (changes, area) {
+    if (area === "local" && changes.debug_last_e2e)
+      showE2e(changes.debug_last_e2e.newValue);
+  });
+  function runE2e(ev) {
+    if (ev) ev.preventDefault();
+    i2p.textContent = "Testing .i2p load (opens a background tab)…";
+    i2p.style.color = "";
+    chrome.runtime.sendMessage({ debug: "reachability" }, function () {
+      if (chrome.runtime.lastError) {
+        i2p.textContent = "● Worker not reachable — reload the extension";
+        i2p.style.color = "#c62828";
+      }
+    });
+  }
+  var link = document.getElementById("run-e2e");
+  if (link) link.addEventListener("click", runE2e);
+}
+
+if (typeof document !== "undefined") {
+  document.addEventListener("DOMContentLoaded", popupStatusInit);
+}
+
 // The router console host/port, overridable from the options page.
 var control_host = "localhost";
 var control_port = "7657";

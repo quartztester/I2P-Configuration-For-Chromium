@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	. "github.com/eyedeekay/go-ccw"
 )
@@ -25,7 +26,7 @@ var EXTENSIONS = []string{"i2pchrome.js"}
 // config while keeping the filename - would pass it. We therefore verify the
 // content hash ourselves before ever launching Chromium with
 // --load-extension, and refuse to start on mismatch.
-var EXTENSIONHASHES = []string{"ef6c69e1a7a1b77825b1c0c1b10776581ec14993ff70fa2402ee74601861d52a"}
+var EXTENSIONHASHES = []string{"38dcb53255abeb90a9b8c4956121f1a7b7424fd7d05df56a0fe63b9c3c5765be"}
 var ARGS = []string{
 	"--safebrowsing-disable-download-protection",
 	"--disable-client-side-phishing-detection",
@@ -82,7 +83,17 @@ func writeExtension(val os.FileInfo, system http.FileSystem) {
 			}
 			writeSubDirectory(file)
 		} else {
+			// Chromium's runtime _metadata (indexed DNR rulesets) must not be
+			// shipped: the content hash skips it, and shipping it here would
+			// extract into directories that do not exist.
+			if strings.HasPrefix(val.Name(), "/_metadata") {
+				log.Println("skipping embedded _metadata entry", val.Name())
+				return
+			}
 			log.Println("Writing file to extension", val.Name())
+			if err := os.MkdirAll(filepath.Dir("i2pchrome.js/"+val.Name()), FS.Mode()); err != nil {
+				log.Fatal(err.Error())
+			}
 			file, err := FS.Open(val.Name()) //
 			if err != nil {
 				log.Fatal(err.Error())

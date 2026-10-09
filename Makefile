@@ -1,5 +1,5 @@
 
-VERSION=2.1.0
+VERSION=2.1.1
 # GitHub owner for `make release` (gothub -u). Built-in $(USER) is the login
 # name, so use a dedicated variable defaulting to upstream.
 GHUSER ?= eyedeekay

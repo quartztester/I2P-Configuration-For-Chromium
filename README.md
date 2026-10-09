@@ -17,7 +17,7 @@ disabled, and tabs on `.i2p` sites are grouped and badged yellow.
 **Requires:** a running I2P router with the HTTP proxy on `4444`
 (default) and console on `7657`.
 
-1. Download `i2pchrome.js-2.1.0-unpacked.zip` from the
+1. Download `i2pchrome.js-2.1.1-unpacked.zip` from the
    [latest release](https://github.com/quartztester/I2P-Configuration-For-Chromium/releases/latest) and unzip it.
 2. Create a fresh Chromium profile (chrome://settings → Add person) —
    **do not sign in / enable sync** on it.

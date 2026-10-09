@@ -52,3 +52,17 @@ img.readyness {
 #consoleOn {
   min-height: 2rem
 }
+/* live readiness indicators (replaced the old static proxy.i2p images,
+   which 404'd even on healthy routers and always said "not ready") */
+#readyness {
+  width: auto;
+  min-width: 0;
+  min-height: 0;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.7;
+}
+#status-router, #status-i2p {
+  padding: .1rem .3rem;
+  white-space: normal;
+}

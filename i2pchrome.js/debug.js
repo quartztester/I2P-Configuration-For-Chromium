@@ -275,10 +275,12 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
     debugState().then(sendResponse);
     return true;
   }
-  if (msg.debug === "probe") {
+  if (msg.debug === "probe" || msg.debug === "probes") {
     Promise.all([probeRouterConsole(), probeProxyPort()])
       .then(function (r) {
-        sendResponse({ router_console: r[0], proxy_port: r[1] });
+        var out = { router_console: r[0], proxy_port: r[1] };
+        chrome.storage.local.set({ debug_last_probe: out });
+        sendResponse(out);
       })
       .catch(function (e) {
         sendResponse({ error: String(e) });
@@ -288,6 +290,11 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
   if (msg.debug === "reachability") {
     probeI2PViaProxy()
       .then(function (s) {
+        // persist: callers like the popup may be gone by the time the
+        // background-tab probe finishes (~5-25s)
+        chrome.storage.local.set({
+          debug_last_e2e: { at: new Date().toISOString(), result: s },
+        });
         sendResponse({ reachability: s });
       })
       .catch(function (e) {
