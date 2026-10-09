@@ -39,6 +39,15 @@ disabled, and tabs on `.i2p` sites are grouped and badged yellow.
 The Chrome Web Store listing is the retired MV2 build and will not load
 in current Chromium; use the steps above.
 
+**Brave:** works — the full test suite (service worker, proxy config, DNR
+rules, popup, Diagnostics panel, live `.i2p` loads) passes on
+`brave-browser`, including `chrome.proxy` and `chrome.privacy` effects.
+One Brave-specific gotcha: with **HTTPS-First Mode** enabled
+(`brave://settings/security`), Brave force-upgrades `http://zzz.i2p/` to
+https and you'll get a connection error. Turn HTTPS-First Mode off in
+the I2P browsing profile, or click "Continue to HTTP site" when Brave
+shows its upgrade warning.
+
 ## What it does
 
 | Area | Behavior |
