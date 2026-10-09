@@ -17,14 +17,18 @@ disabled, and tabs on `.i2p` sites are grouped and badged yellow.
 **Requires:** a running I2P router with the HTTP proxy on `4444`
 (default) and console on `7657`.
 
-1. Download `i2pchrome.js-2.1.1-unpacked.zip` from the
+1. Download `i2pchrome.js-2.1.2-unpacked.zip` from the
    [latest release](https://github.com/quartztester/I2P-Configuration-For-Chromium/releases/latest) and unzip it.
 2. Create a fresh Chromium profile (chrome://settings → Add person) —
    **do not sign in / enable sync** on it.
 3. Open `chrome://extensions`, enable **Developer mode**, click
    **Load unpacked**, select the unzipped folder.
-4. Browse `.i2p` sites. The toolbar popup links to the router console
-   tools (i2ptunnel, susimail, snark) and clears browsing data on demand.
+4. Browse `.i2p` sites. **Type the full URL, including `http://`**
+   (e.g. `http://zzz.i2p/`) — Chrome does not recognize `.i2p` as a
+   domain, so typing bare `zzz.i2p` in a new tab sends it to your search
+   engine instead of the proxy. The toolbar popup links to the router
+   console tools (i2ptunnel, susimail, snark) and clears browsing data
+   on demand.
 5. If `.i2p` sites do not load, click **Diagnostics** in the popup: it
    probes the router console and proxy ports, the browser proxy
    configuration (including who controls it), the localhost-block ruleset
