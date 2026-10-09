@@ -18,7 +18,7 @@ disabled, and tabs on `.i2p` sites are grouped and badged yellow.
 (default) and console on `7657`.
 
 1. Download `i2pchrome.js-2.0.0-unpacked.zip` from the
-   [latest release](../../releases/latest) and unzip it.
+   [latest release](https://github.com/quartztester/I2P-Configuration-For-Chromium/releases/latest) and unzip it.
 2. Create a fresh Chromium profile (chrome://settings → Add person) —
    **do not sign in / enable sync** on it.
 3. Open `chrome://extensions`, enable **Developer mode**, click
